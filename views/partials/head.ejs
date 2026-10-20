@@ -1,0 +1,57 @@
+<%
+  const pageTitle = (typeof title !== 'undefined' && title) ? `${title} – ${site.site_title}` : `${site.site_title} – ${site.site_tagline}`;
+  const pageDesc = (typeof description !== 'undefined' && description) ? description : site.site_tagline;
+  const pageImage = (typeof ogImage !== 'undefined' && ogImage) ? baseUrl + h.img(ogImage) : null;
+%><!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= pageTitle %></title>
+  <meta name="description" content="<%= pageDesc %>">
+  <link rel="canonical" href="<%= baseUrl + path %>">
+  <meta property="og:site_name" content="<%= site.site_title %>">
+  <meta property="og:title" content="<%= (typeof title !== 'undefined' && title) || site.site_title %>">
+  <meta property="og:description" content="<%= pageDesc %>">
+  <meta property="og:url" content="<%= baseUrl + path %>">
+  <meta property="og:locale" content="de_DE">
+  <% if (pageImage) { %><meta property="og:image" content="<%= pageImage %>">
+  <meta name="twitter:card" content="summary_large_image"><% } %>
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+  <link rel="alternate" type="application/rss+xml" title="<%= site.site_title %>" href="/feed.xml">
+  <link rel="alternate" type="application/rss+xml" title="<%= site.site_title %> – Podcasts" href="/podcasts/feed.xml">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/site.js" defer></script>
+</head>
+<body class="mode-<%= mode %>">
+<a class="skip" href="#inhalt">Zum Inhalt springen</a>
+<header class="masthead">
+  <div class="wrap masthead-top">
+    <a class="brand" href="<%= mode === 'podcasts' ? '/podcasts' : '/' %>">
+      <span class="brand-title"><%= site.site_title %></span>
+      <span class="brand-tag"><%= mode === 'podcasts' ? 'Podcast-Reviews' : site.site_tagline %></span>
+    </a>
+    <nav class="switch" aria-label="Bereich wählen">
+      <a href="/" <%- mode === 'magazin' ? 'class="is-active" aria-current="true"' : '' %>>Magazin</a>
+      <a href="/podcasts" <%- mode === 'podcasts' ? 'class="is-active" aria-current="true"' : '' %>>Podcasts</a>
+    </nav>
+    <a class="icon-btn" href="/suche" aria-label="Suche">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m20 20-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </a>
+  </div>
+  <nav class="subnav" aria-label="Rubriken">
+    <div class="wrap subnav-inner">
+    <% if (mode === 'podcasts') { %>
+      <a href="/podcasts" <%- path === '/podcasts' ? 'class="is-active"' : '' %>>Alle Reviews</a>
+      <a href="/podcasts/feed.xml">RSS</a>
+    <% } else { %>
+      <a href="/" <%- path === '/' ? 'class="is-active"' : '' %>>Startseite</a>
+      <% navSections.forEach(s => { %>
+        <a href="/rubrik/<%= s.slug %>" <%- path === '/rubrik/' + s.slug ? 'class="is-active"' : '' %>><%= s.name %></a>
+      <% }) %>
+    <% } %>
+    </div>
+  </nav>
+</header>
+<main id="inhalt">

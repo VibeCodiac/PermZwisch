@@ -1,0 +1,17 @@
+<%- include('partials/head') %>
+<div class="wrap">
+  <header class="page-head">
+    <p class="kicker">Hören & Bewerten</p>
+    <h1>Podcast-Reviews</h1>
+    <p class="lede">Besprechungen von Podcasts und einzelnen Folgen – mit direktem Link zu Spotify und Apple Podcasts.</p>
+  </header>
+  <% if (!reviews.length) { %>
+    <p class="muted empty">Noch keine Reviews veröffentlicht.</p>
+  <% } else { %>
+    <div class="grid grid-4">
+      <% reviews.forEach(r => { %><%- include('partials/review-card', { review: r }) %><% }) %>
+    </div>
+  <% } %>
+  <%- include('partials/pagination') %>
+</div>
+<%- include('partials/foot') %>

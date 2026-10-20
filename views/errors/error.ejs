@@ -1,0 +1,15 @@
+<% if (typeof adminArea !== 'undefined' && adminArea && typeof currentUser !== 'undefined' && currentUser) { %>
+<%- include('../admin/_head') %>
+<div class="error-page"><p class="error-code"><%= status %></p><h1><%= title %></h1><p><%= message %></p>
+<p><a class="btn" href="/admin">Zur Übersicht</a></p></div>
+<%- include('../admin/_foot') %>
+<% } else { %>
+<%- include('../partials/head') %>
+<div class="wrap-narrow error-page">
+  <p class="error-code"><%= status %></p>
+  <h1><%= title %></h1>
+  <p class="lede"><%= message %></p>
+  <p><a class="btn" href="/">Zur Startseite</a></p>
+</div>
+<%- include('../partials/foot') %>
+<% } %>

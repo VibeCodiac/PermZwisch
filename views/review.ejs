@@ -1,0 +1,61 @@
+<%- include('partials/head') %>
+<article class="review">
+  <header class="wrap review-head">
+    <div class="review-art">
+      <% if (review.artwork_file) { %>
+        <img src="<%= h.img(review.artwork_file) %>" alt="Cover von <%= review.podcast_name %>">
+      <% } else { %><span class="art-placeholder big">🎧</span><% } %>
+    </div>
+    <div class="review-info">
+      <p class="kicker"><%= review.podcast_name %><% if (review.publisher) { %> · <span class="muted"><%= review.publisher %></span><% } %></p>
+      <h1><%= review.title %></h1>
+      <% if (review.episode_title) { %><p class="episode">Folge: <strong><%= review.episode_title %></strong></p><% } %>
+      <% if (review.rating) { %><p class="stars stars-lg" aria-label="Bewertung: <%= review.rating %> von 5 Sternen"><%= h.stars(review.rating) %></p><% } %>
+      <div class="listen">
+        <% if (spotify) { %>
+        <a class="listen-btn spotify" href="<%= spotify.url %>" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="currentColor"/><path d="M6.5 9.3c3.7-1.1 7.9-.8 11 1M7.2 12.6c3-.9 6.4-.6 9 .9M7.8 15.7c2.4-.6 5-.4 7 .7" stroke="#fff" stroke-width="1.7" stroke-linecap="round" fill="none"/></svg>
+          Auf Spotify hören
+        </a>
+        <% } %>
+        <% if (apple) { %>
+        <a class="listen-btn apple" href="<%= apple.url %>" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><circle cx="12" cy="10" r="2.6" fill="#fff"/><path d="M10.6 14.2h2.8l-.5 5.3h-1.8z" fill="#fff"/><path d="M7.3 15.4a6 6 0 1 1 9.4 0" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+          In Apple Podcasts öffnen
+        </a>
+        <% } %>
+      </div>
+      <div class="byline">
+        <% if (review.author_avatar) { %><img class="avatar" src="<%= h.img(review.author_avatar, 'sm') %>" alt=""><% } %>
+        <div><a href="/autor/<%= review.author_slug %>"><strong><%= review.author_name %></strong></a><br>
+        <span class="muted"><%= h.formatDate(review.published_at) %></span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap-narrow">
+    <% if (review.excerpt) { %><p class="lede"><%= review.excerpt %></p><% } %>
+
+    <% const players = [spotify && { name: 'Spotify', src: spotify.embed, h: spotify.type === 'episode' ? 152 : 232 }, apple && { name: 'Apple Podcasts', src: apple.embed, h: apple.episodeId ? 175 : 450 }].filter(Boolean); %>
+    <% players.forEach(pl => { %>
+    <div class="embed" data-embed-src="<%= pl.src %>" data-embed-height="<%= pl.h %>" data-embed-title="<%= pl.name %>-Player">
+      <div class="embed-gate">
+        <p><strong><%= pl.name %>-Player laden?</strong><br>
+        <span class="muted">Beim Laden werden Daten (u. a. deine IP-Adresse) an <%= pl.name %> übertragen. <a href="/datenschutz">Mehr erfahren</a></span></p>
+        <button type="button" class="btn" data-embed-load>Player laden</button>
+        <label class="check"><input type="checkbox" data-embed-remember> Externe Medien immer erlauben</label>
+      </div>
+    </div>
+    <% }) %>
+
+    <div class="prose"><%- review.body_html %></div>
+  </div>
+</article>
+
+<% if (more.length) { %>
+<section class="wrap block">
+  <header class="block-head"><h2>Weitere Reviews</h2><a class="more" href="/podcasts">Alle →</a></header>
+  <div class="grid grid-3"><% more.forEach(r => { %><%- include('partials/review-card', { review: r }) %><% }) %></div>
+</section>
+<% } %>
+<%- include('partials/foot') %>

@@ -1,0 +1,87 @@
+<%- include('_head') %>
+<header class="admin-head">
+  <h1><%= title %></h1>
+  <% if (post.id) { %>
+  <form method="post" action="/admin/beitraege/<%= post.id %>/loeschen" data-confirm="Diesen Beitrag wirklich löschen?">
+    <input type="hidden" name="_csrf" value="<%= csrf() %>">
+    <button class="btn btn-danger" type="submit">Löschen</button>
+  </form>
+  <% } %>
+</header>
+<% if (error) { %><p class="alert alert-error" role="alert"><%= error %></p><% } %>
+<% if (query.gespeichert) { %><p class="alert alert-ok">Gespeichert.</p><% } %>
+
+<form class="form editor-layout" method="post" action="/admin/beitraege<%= post.id ? '/' + post.id : '' %>" enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrf() %>">
+  <div class="editor-main">
+    <fieldset class="kind-switch">
+      <legend>Art des Beitrags</legend>
+      <label><input type="radio" name="kind" value="article" <%= post.kind === 'article' ? 'checked' : '' %>> Artikel</label>
+      <label><input type="radio" name="kind" value="link" <%= post.kind === 'link' ? 'checked' : '' %>> Link-Empfehlung</label>
+      <label><input type="radio" name="kind" value="gallery" <%= post.kind === 'gallery' ? 'checked' : '' %>> Fotostrecke</label>
+    </fieldset>
+
+    <label>Titel<input class="input-title" type="text" name="title" value="<%= post.title || '' %>" maxlength="200" required></label>
+    <label>Teaser / Vorspann<textarea name="excerpt" rows="2" maxlength="600"><%= post.excerpt || '' %></textarea></label>
+
+    <section class="panel only-kind" data-kinds="link article">
+      <h2>Externer Artikel <small class="muted">(bei Artikeln optional)</small></h2>
+      <div class="row">
+        <label class="grow">URL des Artikels<input type="url" name="link_url" value="<%= post.link_url || '' %>" placeholder="https://…" data-link-url></label>
+        <button type="button" class="btn btn-ghost" data-link-fetch>Vorschau abrufen</button>
+      </div>
+      <p class="small muted" data-link-status></p>
+      <div class="row">
+        <label class="grow">Titel des Artikels<input type="text" name="link_title" value="<%= post.link_title || '' %>" maxlength="300" data-link-title></label>
+        <label>Quelle<input type="text" name="link_source" value="<%= post.link_source || '' %>" maxlength="120" placeholder="z. B. Die Zeit" data-link-source></label>
+      </div>
+      <label>Beschreibung<textarea name="link_description" rows="2" maxlength="600" data-link-desc><%= post.link_description || '' %></textarea></label>
+      <input type="hidden" name="link_image_id" value="<%= post.link_image_id || '' %>" data-link-image-id>
+      <div class="link-thumb" data-link-thumb><% if (post.link_image_file) { %><img src="<%= h.img(post.link_image_file, 'sm') %>" alt=""><% } %></div>
+    </section>
+
+    <label>Text</label>
+    <%- include('_editor', { name: 'body_md', value: post.body_md }) %>
+
+    <section class="panel only-kind" data-kinds="gallery">
+      <h2>Fotos</h2>
+      <% if (images.length) { %>
+      <div class="gallery-edit">
+        <% images.forEach(img => { %>
+        <div class="gallery-item">
+          <img src="<%= h.img(img.file, 'sm') %>" alt="">
+          <input type="text" name="caption_<%= img.id %>" value="<%= img.caption %>" placeholder="Bildunterschrift" maxlength="300">
+          <div class="row">
+            <label class="small">Pos. <input type="number" name="position_<%= img.id %>" value="<%= img.position %>" min="0" max="999"></label>
+            <label class="small check"><input type="checkbox" name="remove_gallery" value="<%= img.id %>"> entfernen</label>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+      <% } %>
+      <label>Fotos hinzufügen<input type="file" name="gallery" accept="image/*" multiple></label>
+      <p class="small muted">Bis zu 30 Bilder, je max. 15 MB. Metadaten (z. B. GPS-Position) werden automatisch entfernt.</p>
+    </section>
+  </div>
+
+  <aside class="editor-side">
+    <%- include('_publish', { item: post, viewUrl: '/artikel/' + post.slug }) %>
+    <div class="panel">
+      <h2>Rubrik</h2>
+      <select name="section_id">
+        <option value="">– keine –</option>
+        <% sections.forEach(s => { %><option value="<%= s.id %>" <%= post.section_id === s.id ? 'selected' : '' %>><%= s.name %></option><% }) %>
+      </select>
+    </div>
+    <div class="panel">
+      <h2>Titelbild</h2>
+      <% if (post.cover_id && post.cover_file) { %>
+        <img class="preview-img" src="<%= h.img(post.cover_file, 'sm') %>" alt="">
+        <label class="check small"><input type="checkbox" name="remove_cover" value="1"> Titelbild entfernen</label>
+      <% } %>
+      <input type="file" name="cover" accept="image/*">
+      <label>Bildunterschrift / Alt-Text<input type="text" name="cover_alt" value="<%= post.cover_alt || '' %>" maxlength="300"></label>
+    </div>
+  </aside>
+</form>
+<%- include('_foot') %>

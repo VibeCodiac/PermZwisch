@@ -1,0 +1,38 @@
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div>
+      <p class="footer-brand"><%= site.site_title %></p>
+      <p class="muted"><%= site.site_tagline %></p>
+    </div>
+    <nav class="footer-links" aria-label="Rechtliches und Service">
+      <a href="/ueber">Über uns</a>
+      <a href="/autoren">Autor*innen</a>
+      <a href="/feed.xml">RSS</a>
+      <a href="/impressum">Impressum</a>
+      <a href="/datenschutz">Datenschutz</a>
+      <button type="button" class="linklike" data-consent-open>Cookie-Einstellungen</button>
+      <a href="/admin" rel="nofollow">Redaktion</a>
+    </nav>
+  </div>
+  <div class="wrap footer-copy muted">© <%= new Date().getFullYear() %> <%= site.site_title %></div>
+</footer>
+
+<div class="consent" id="consent" role="dialog" aria-labelledby="consent-title" aria-describedby="consent-text" hidden>
+  <div class="consent-box">
+    <h2 id="consent-title">Privatsphäre</h2>
+    <p id="consent-text">Wir verwenden keine Tracking-Cookies. Podcast-Player von Spotify und Apple laden wir nur, wenn du zustimmst – dabei werden Daten an diese Anbieter übertragen. Mehr in der <a href="/datenschutz">Datenschutzerklärung</a>.</p>
+    <div class="consent-actions">
+      <button type="button" class="btn btn-ghost" data-consent="essential">Nur notwendige</button>
+      <button type="button" class="btn" data-consent="external">Externe Medien erlauben</button>
+    </div>
+  </div>
+</div>
+
+<dialog class="lightbox" id="lightbox" aria-label="Bildansicht">
+  <form method="dialog"><button class="lightbox-close" aria-label="Schließen">×</button></form>
+  <img alt="">
+  <p class="lightbox-caption"></p>
+</dialog>
+</body>
+</html>

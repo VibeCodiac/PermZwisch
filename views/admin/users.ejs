@@ -1,0 +1,23 @@
+<%- include('_head') %>
+<header class="admin-head">
+  <h1>Nutzer*innen</h1>
+  <div class="actions"><a class="btn" href="/admin/nutzer/neu">Neue*r Autor*in</a></div>
+</header>
+<div class="panel">
+<table class="table">
+  <thead><tr><th>Name</th><th>E-Mail</th><th>Rolle</th><th>Beiträge</th><th>Reviews</th><th>Status</th></tr></thead>
+  <tbody>
+  <% users.forEach(u => { %>
+  <tr>
+    <td><a href="/admin/nutzer/<%= u.id %>"><strong><%= u.name %></strong></a></td>
+    <td><%= u.email %></td>
+    <td><span class="tag"><%= u.role === 'admin' ? 'Admin' : 'Autor*in' %></span></td>
+    <td><%= u.posts %></td>
+    <td><%= u.reviews %></td>
+    <td><span class="status <%= u.active ? 'status-published' : 'status-draft' %>"><%= u.active ? 'aktiv' : 'deaktiviert' %></span></td>
+  </tr>
+  <% }) %>
+  </tbody>
+</table>
+</div>
+<%- include('_foot') %>

@@ -1,0 +1,26 @@
+<%- include('_head') %>
+<header class="admin-head">
+  <h1>Podcast-Reviews</h1>
+  <div class="actions"><a class="btn" href="/admin/podcasts/neu">Neues Review</a></div>
+</header>
+<div class="panel">
+<% if (!reviews.length) { %><p class="muted">Noch keine Reviews.</p><% } else { %>
+<table class="table">
+  <thead><tr><th></th><th>Titel</th><th>Podcast</th><th>Wertung</th><th>Autor*in</th><th>Status</th><th>Datum</th></tr></thead>
+  <tbody>
+  <% reviews.forEach(r => { %>
+  <tr>
+    <td class="thumb-cell"><% if (r.artwork_file) { %><img src="<%= h.img(r.artwork_file, 'sm') %>" alt=""><% } %></td>
+    <td><a href="/admin/podcasts/<%= r.id %>"><strong><%= r.title %></strong></a></td>
+    <td><%= r.podcast_name %></td>
+    <td class="stars"><%= r.rating ? h.stars(r.rating) : '–' %></td>
+    <td><%= r.author_name %></td>
+    <td><span class="status status-<%= r.status %>"><%= r.status === 'published' ? 'Veröffentlicht' : 'Entwurf' %></span></td>
+    <td class="muted"><%= h.formatDate(r.published_at || r.updated_at) %></td>
+  </tr>
+  <% }) %>
+  </tbody>
+</table>
+<% } %>
+</div>
+<%- include('_foot') %>

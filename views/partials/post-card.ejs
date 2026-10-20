@@ -1,0 +1,23 @@
+<%
+  const p = post;
+  const v = typeof variant !== 'undefined' ? variant : 'default';
+  const showSection = typeof hideSection === 'undefined' || !hideSection;
+  const image = p.cover_file || p.link_image_file;
+%>
+<article class="card card-<%= v %> kind-<%= p.kind %>">
+  <% if (image && v !== 'compact') { %>
+    <a class="card-media" href="/artikel/<%= p.slug %>" tabindex="-1" aria-hidden="true">
+      <img src="<%= h.img(image, v === 'lead' ? null : 'sm') %>" alt="" loading="<%= v === 'lead' ? 'eager' : 'lazy' %>" decoding="async">
+      <% if (p.kind === 'gallery') { %><span class="badge">Fotos</span><% } %>
+    </a>
+  <% } %>
+  <div class="card-body">
+    <p class="kicker">
+      <% if (showSection && p.section_name) { %><a href="/rubrik/<%= p.section_slug %>"><%= p.section_name %></a><% } %>
+      <% if (p.kind === 'link') { %><span class="kicker-ext">↗ <%= p.link_source || h.hostOf(p.link_url) %></span><% } %>
+    </p>
+    <h3 class="card-title"><a href="/artikel/<%= p.slug %>"><%= p.title %></a></h3>
+    <% if (p.excerpt && v !== 'compact') { %><p class="card-excerpt"><%= p.excerpt %></p><% } %>
+    <p class="meta"><a href="/autor/<%= p.author_slug %>"><%= p.author_name %></a> · <time datetime="<%= h.isoDate(p.published_at) %>"><%= h.formatDate(p.published_at) %></time></p>
+  </div>
+</article>

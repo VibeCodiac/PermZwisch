@@ -1,0 +1,50 @@
+<%- include('_head') %>
+<header class="admin-head"><h1>Einstellungen</h1></header>
+<% if (saved) { %><p class="alert alert-ok">Gespeichert.</p><% } %>
+<div class="two-col">
+  <form class="form panel" method="post" action="/admin/einstellungen">
+    <input type="hidden" name="_csrf" value="<%= csrf() %>">
+    <h2>Website</h2>
+    <label>Name der Seite<input type="text" name="site_title" value="<%= site.site_title %>" maxlength="100" required></label>
+    <label>Untertitel<input type="text" name="site_tagline" value="<%= site.site_tagline %>" maxlength="200"></label>
+    <button class="btn" type="submit">Speichern</button>
+  </form>
+  <div class="panel">
+    <h2>Rechtliche Seiten</h2>
+    <p class="small muted">Impressum und Datenschutzerklärung sind gesetzlich vorgeschrieben. Bitte die Platzhalter in [eckigen Klammern] ersetzen.</p>
+    <ul class="plain">
+      <% pages.forEach(p => { %>
+      <li><a href="/admin/seiten/<%= p.slug %>"><%= p.title %></a> <span class="muted small">– zuletzt <%= h.formatDate(p.updated_at) %></span></li>
+      <% }) %>
+    </ul>
+  </div>
+</div>
+
+<section class="panel">
+  <h2>Rubriken</h2>
+  <div class="section-rows">
+  <% sectionRows.forEach(s => { %>
+    <div class="section-row">
+      <form class="row" method="post" action="/admin/rubriken/<%= s.id %>">
+        <input type="hidden" name="_csrf" value="<%= csrf() %>">
+        <input type="number" name="position" value="<%= s.position %>" class="w-pos" aria-label="Position" title="Reihenfolge">
+        <input type="text" name="name" value="<%= s.name %>" maxlength="60" required aria-label="Name">
+        <input class="grow" type="text" name="description" value="<%= s.description %>" maxlength="300" aria-label="Beschreibung">
+        <span class="muted small"><%= s.posts %> Beitr.</span>
+        <button class="btn btn-ghost btn-sm" type="submit">Speichern</button>
+      </form>
+      <form method="post" action="/admin/rubriken/<%= s.id %>/loeschen" data-confirm="Rubrik „<%= s.name %>“ löschen? Beiträge bleiben erhalten, verlieren aber ihre Rubrik.">
+        <input type="hidden" name="_csrf" value="<%= csrf() %>">
+        <button class="linklike danger small" type="submit">Löschen</button>
+      </form>
+    </div>
+  <% }) %>
+  </div>
+  <form class="row form" method="post" action="/admin/rubriken">
+    <input type="hidden" name="_csrf" value="<%= csrf() %>">
+    <input type="text" name="name" placeholder="Neue Rubrik, z. B. Wirtschaft" maxlength="60" required aria-label="Name der neuen Rubrik">
+    <input class="grow" type="text" name="description" placeholder="Beschreibung" maxlength="300" aria-label="Beschreibung">
+    <button class="btn" type="submit">Hinzufügen</button>
+  </form>
+</section>
+<%- include('_foot') %>

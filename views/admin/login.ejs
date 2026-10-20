@@ -1,0 +1,14 @@
+<%- include('_head') %>
+<div class="login">
+  <h1><%= site.site_title %></h1>
+  <p class="muted">Anmeldung für die Redaktion</p>
+  <% if (error) { %><p class="alert alert-error" role="alert"><%= error %></p><% } %>
+  <form method="post" action="/admin/login" class="form">
+    <input type="hidden" name="_csrf" value="<%= csrf() %>">
+    <label>E-Mail<input type="email" name="email" value="<%= email %>" autocomplete="username" required autofocus></label>
+    <label>Passwort<input type="password" name="password" autocomplete="current-password" required></label>
+    <button class="btn btn-block" type="submit">Anmelden</button>
+  </form>
+  <p class="small"><a href="/">← Zurück zur Website</a></p>
+</div>
+<%- include('_foot') %>

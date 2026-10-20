@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="csrf-token" content="<%= csrf() %>">
+  <meta name="color-scheme" content="light dark">
+  <title><%= title %> – Redaktion · <%= site.site_title %></title>
+  <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/admin.css">
+  <script src="/static/js/admin.js" defer></script>
+</head>
+<body class="admin">
+<% if (typeof currentUser !== 'undefined' && currentUser) { %>
+<div class="admin-shell">
+  <aside class="admin-nav">
+    <a class="admin-brand" href="/admin"><%= site.site_title %><span>Redaktion</span></a>
+    <nav>
+      <a href="/admin" <%- path === '/' ? 'class="is-active"' : '' %>>Übersicht</a>
+      <a href="/admin/beitraege" <%- path.startsWith('/beitraege') ? 'class="is-active"' : '' %>>Beiträge</a>
+      <a href="/admin/podcasts" <%- path.startsWith('/podcasts') ? 'class="is-active"' : '' %>>Podcast-Reviews</a>
+      <a href="/admin/medien" <%- path.startsWith('/medien') ? 'class="is-active"' : '' %>>Mediathek</a>
+      <a href="/admin/profil" <%- path.startsWith('/profil') ? 'class="is-active"' : '' %>>Mein Profil</a>
+      <% if (currentUser.role === 'admin') { %>
+      <span class="admin-nav-label">Verwaltung</span>
+      <a href="/admin/nutzer" <%- path.startsWith('/nutzer') ? 'class="is-active"' : '' %>>Nutzer*innen</a>
+      <a href="/admin/einstellungen" <%- path.startsWith('/einstellungen') || path.startsWith('/seiten') ? 'class="is-active"' : '' %>>Einstellungen</a>
+      <% } %>
+    </nav>
+    <div class="admin-user">
+      <span><%= currentUser.name %><br><small class="muted"><%= currentUser.role === 'admin' ? 'Admin' : 'Autor*in' %></small></span>
+      <a href="/" target="_blank" rel="noopener">Seite ansehen ↗</a>
+      <form method="post" action="/admin/logout"><input type="hidden" name="_csrf" value="<%= csrf() %>"><button class="linklike" type="submit">Abmelden</button></form>
+    </div>
+  </aside>
+  <main class="admin-main">
+<% } else { %>
+<main class="admin-solo">
+<% } %>

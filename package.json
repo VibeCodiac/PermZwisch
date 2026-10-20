@@ -1,0 +1,45 @@
+{
+  "name": "ruediger-blog",
+  "version": "1.0.0",
+  "description": "Blog mit Rubriken, Fotostrecken, Link-Empfehlungen und Podcast-Reviews – inkl. Redaktionssystem für mehrere Autor*innen.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "create-admin": "node scripts/create-admin.js",
+    "test": "node --test --test-force-exit test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VibeCodiac/R-diger-s-Birthday.git"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/VibeCodiac/R-diger-s-Birthday/issues"
+  },
+  "homepage": "https://github.com/VibeCodiac/R-diger-s-Birthday#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "better-sqlite3-session-store": "^0.1.0",
+    "dotenv": "^18.0.8",
+    "ejs": "^7.0.2",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "marked": "^18.1.1",
+    "multer": "^2.4.0",
+    "sanitize-html": "^2.18.1",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
+  },
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,26 @@
+<%- include('_head') %>
+<header class="admin-head">
+  <h1>Beiträge</h1>
+  <div class="actions"><a class="btn" href="/admin/beitraege/neu">Neuer Beitrag</a></div>
+</header>
+<% const kinds = { article: 'Artikel', link: 'Link', gallery: 'Fotos' }; %>
+<div class="panel">
+<% if (!posts.length) { %><p class="muted">Noch keine Beiträge.</p><% } else { %>
+<table class="table">
+  <thead><tr><th>Titel</th><th>Art</th><th>Rubrik</th><th>Autor*in</th><th>Status</th><th>Datum</th></tr></thead>
+  <tbody>
+  <% posts.forEach(p => { %>
+  <tr>
+    <td><a href="/admin/beitraege/<%= p.id %>"><strong><%= p.title %></strong></a></td>
+    <td><span class="tag"><%= kinds[p.kind] %></span></td>
+    <td><%= p.section_name || '–' %></td>
+    <td><%= p.author_name %></td>
+    <td><span class="status status-<%= p.status %>"><%= p.status === 'published' ? 'Veröffentlicht' : 'Entwurf' %></span></td>
+    <td class="muted"><%= h.formatDate(p.published_at || p.updated_at) %></td>
+  </tr>
+  <% }) %>
+  </tbody>
+</table>
+<% } %>
+</div>
+<%- include('_foot') %>

@@ -1,0 +1,42 @@
+<%- include('partials/head') %>
+<div class="wrap">
+<% if (!lead) { %>
+  <section class="empty">
+    <h1>Willkommen!</h1>
+    <p class="muted">Hier erscheinen bald die ersten Beiträge. Autor*innen können sich in der <a href="/admin">Redaktion</a> anmelden.</p>
+  </section>
+<% } else { %>
+  <section class="front">
+    <div class="front-lead"><%- include('partials/post-card', { post: lead, variant: 'lead' }) %></div>
+    <div class="front-list">
+      <h2 class="label">Neueste Beiträge</h2>
+      <% latest.slice(0, 4).forEach(p => { %><%- include('partials/post-card', { post: p, variant: 'compact' }) %><% }) %>
+    </div>
+  </section>
+
+  <% bySection.forEach(g => { %>
+  <section class="block">
+    <header class="block-head">
+      <h2><a href="/rubrik/<%= g.section.slug %>"><%= g.section.name %></a></h2>
+      <a class="more" href="/rubrik/<%= g.section.slug %>">Alle Beiträge →</a>
+    </header>
+    <div class="grid grid-3">
+      <% g.posts.forEach(p => { %><%- include('partials/post-card', { post: p, hideSection: true }) %><% }) %>
+    </div>
+  </section>
+  <% }) %>
+<% } %>
+
+<% if (reviews.length) { %>
+  <section class="block block-podcasts">
+    <header class="block-head">
+      <h2><a href="/podcasts">Podcast-Reviews</a></h2>
+      <a class="more" href="/podcasts">Zu den Podcasts →</a>
+    </header>
+    <div class="grid grid-4">
+      <% reviews.forEach(r => { %><%- include('partials/review-card', { review: r }) %><% }) %>
+    </div>
+  </section>
+<% } %>
+</div>
+<%- include('partials/foot') %>

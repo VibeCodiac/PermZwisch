@@ -1,0 +1,17 @@
+<%- include('partials/head') %>
+<div class="wrap">
+  <header class="page-head">
+    <p class="kicker">Rubrik</p>
+    <h1><%= section.name %></h1>
+    <% if (section.description) { %><p class="lede"><%= section.description %></p><% } %>
+  </header>
+  <% if (!posts.length) { %>
+    <p class="muted empty">In dieser Rubrik gibt es noch keine Beiträge.</p>
+  <% } else { %>
+    <div class="grid grid-3">
+      <% posts.forEach(p => { %><%- include('partials/post-card', { post: p, hideSection: true }) %><% }) %>
+    </div>
+  <% } %>
+  <%- include('partials/pagination') %>
+</div>
+<%- include('partials/foot') %>

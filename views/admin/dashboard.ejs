@@ -1,0 +1,31 @@
+<%- include('_head') %>
+<header class="admin-head">
+  <h1>Hallo, <%= currentUser.name.split(' ')[0] %></h1>
+  <div class="actions">
+    <a class="btn" href="/admin/beitraege/neu">Neuer Artikel</a>
+    <a class="btn btn-ghost" href="/admin/beitraege/neu?art=link">Link teilen</a>
+    <a class="btn btn-ghost" href="/admin/beitraege/neu?art=gallery">Fotostrecke</a>
+    <a class="btn btn-ghost" href="/admin/podcasts/neu">Podcast-Review</a>
+  </div>
+</header>
+<div class="stats">
+  <div class="stat"><span><%= stats.posts %></span>Beiträge</div>
+  <div class="stat"><span><%= stats.reviews %></span>Reviews</div>
+  <div class="stat"><span><%= stats.drafts %></span>Entwürfe</div>
+  <div class="stat"><span><%= stats.media %></span>Bilder</div>
+</div>
+<section class="panel">
+  <h2>Zuletzt bearbeitet</h2>
+  <% if (!recent.length) { %><p class="muted">Noch nichts da – leg los!</p><% } %>
+  <table class="table">
+    <% recent.forEach(r => { %>
+    <tr>
+      <td><a href="/admin/<%= r.type === 'post' ? 'beitraege' : 'podcasts' %>/<%= r.id %>"><%= r.title %></a></td>
+      <td><span class="tag"><%= r.type === 'post' ? 'Beitrag' : 'Review' %></span></td>
+      <td><span class="status status-<%= r.status %>"><%= r.status === 'published' ? 'Veröffentlicht' : 'Entwurf' %></span></td>
+      <td class="muted"><%= h.formatDateTime(r.updated_at) %></td>
+    </tr>
+    <% }) %>
+  </table>
+</section>
+<%- include('_foot') %>

@@ -1,0 +1,29 @@
+<%- include('_head') %>
+<header class="admin-head"><h1>Mein Profil</h1></header>
+<% if (message) { %><p class="alert alert-ok"><%= message %></p><% } %>
+<% if (error) { %><p class="alert alert-error" role="alert"><%= error %></p><% } %>
+<div class="two-col">
+  <form class="form panel" method="post" action="/admin/profil" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="<%= csrf() %>">
+    <h2>Öffentliches Profil</h2>
+    <% if (avatar) { %>
+      <img class="avatar avatar-xl" src="<%= h.img(avatar, 'sm') %>" alt="">
+      <label class="check small"><input type="checkbox" name="remove_avatar" value="1"> Bild entfernen</label>
+    <% } %>
+    <label>Profilbild<input type="file" name="avatar" accept="image/*"></label>
+    <label>Name<input type="text" name="name" value="<%= currentUser.name %>" maxlength="100" required></label>
+    <label>Kurzbiografie<textarea name="bio" rows="5" maxlength="2000"><%= currentUser.bio %></textarea></label>
+    <p class="small muted">Erscheint auf deiner Autorenseite <a href="/autor/<%= currentUser.slug %>" target="_blank">/autor/<%= currentUser.slug %></a>.</p>
+    <button class="btn" type="submit">Speichern</button>
+  </form>
+  <form class="form panel" method="post" action="/admin/profil/passwort">
+    <input type="hidden" name="_csrf" value="<%= csrf() %>">
+    <h2>Passwort ändern</h2>
+    <label>Aktuelles Passwort<input type="password" name="current" autocomplete="current-password" required></label>
+    <label>Neues Passwort<input type="password" name="password" minlength="12" maxlength="128" autocomplete="new-password" required></label>
+    <label>Wiederholen<input type="password" name="password2" minlength="12" maxlength="128" autocomplete="new-password" required></label>
+    <p class="small muted">Nach der Änderung werden alle anderen Sitzungen abgemeldet.</p>
+    <button class="btn" type="submit">Passwort ändern</button>
+  </form>
+</div>
+<%- include('_foot') %>

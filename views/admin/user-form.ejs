@@ -1,0 +1,22 @@
+<%- include('_head') %>
+<header class="admin-head"><h1><%= title %></h1></header>
+<% if (error) { %><p class="alert alert-error" role="alert"><%= error %></p><% } %>
+<form class="form panel narrow" method="post" action="/admin/nutzer<%= user.id ? '/' + user.id : '' %>">
+  <input type="hidden" name="_csrf" value="<%= csrf() %>">
+  <label>Name<input type="text" name="name" value="<%= user.name || '' %>" maxlength="100" required></label>
+  <label>E-Mail<input type="email" name="email" value="<%= user.email || '' %>" maxlength="200" required autocomplete="off"></label>
+  <% const self = user.id === currentUser.id; %>
+  <label>Rolle
+    <select name="role" <%= self ? 'disabled' : '' %>>
+      <option value="author" <%= user.role === 'author' ? 'selected' : '' %>>Autor*in – eigene Beiträge</option>
+      <option value="admin" <%= user.role === 'admin' ? 'selected' : '' %>>Admin – alles inkl. Nutzerverwaltung</option>
+    </select>
+  </label>
+  <label class="check"><input type="checkbox" name="active" value="1" <%= user.active ? 'checked' : '' %> <%= self ? 'disabled' : '' %>> Konto aktiv</label>
+  <label><%= user.id ? 'Neues Passwort (leer lassen = unverändert)' : 'Passwort' %>
+    <input type="password" name="password" minlength="12" maxlength="128" autocomplete="new-password" <%= user.id ? '' : 'required' %>>
+  </label>
+  <p class="small muted">Mindestens 12 Zeichen, Buchstaben sowie Ziffern oder Sonderzeichen. Bitte das Passwort sicher übermitteln (nicht per unverschlüsselter Mail).</p>
+  <button class="btn" type="submit">Speichern</button>
+</form>
+<%- include('_foot') %>

@@ -1,0 +1,16 @@
+<% const r = review; %>
+<article class="rcard">
+  <a class="rcard-art" href="/podcasts/<%= r.slug %>" tabindex="-1" aria-hidden="true">
+    <% if (r.artwork_file) { %>
+      <img src="<%= h.img(r.artwork_file, 'sm') %>" alt="" loading="lazy" decoding="async">
+    <% } else { %>
+      <span class="art-placeholder">🎧</span>
+    <% } %>
+  </a>
+  <div class="rcard-body">
+    <p class="kicker"><%= r.podcast_name %></p>
+    <h3 class="card-title"><a href="/podcasts/<%= r.slug %>"><%= r.title %></a></h3>
+    <% if (r.rating) { %><p class="stars" aria-label="<%= r.rating %> von 5 Sternen"><%= h.stars(r.rating) %></p><% } %>
+    <p class="meta"><%= r.author_name %> · <%= h.formatDate(r.published_at) %></p>
+  </div>
+</article>

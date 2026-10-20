@@ -1,0 +1,13 @@
+<%- include('partials/head') %>
+<div class="wrap">
+  <header class="page-head"><h1>Autorinnen &amp; Autoren</h1></header>
+  <div class="grid grid-3">
+  <% authors.forEach(a => { %>
+    <a class="person" href="/autor/<%= a.slug %>">
+      <% if (a.avatar) { %><img class="avatar avatar-lg" src="<%= h.img(a.avatar, 'sm') %>" alt=""><% } else { %><span class="avatar avatar-lg avatar-initial"><%= a.name.charAt(0) %></span><% } %>
+      <span><strong><%= a.name %></strong><% if (a.bio) { %><br><span class="muted"><%= a.bio.length > 140 ? a.bio.slice(0, 140) + '…' : a.bio %></span><% } %></span>
+    </a>
+  <% }) %>
+  </div>
+</div>
+<%- include('partials/foot') %>

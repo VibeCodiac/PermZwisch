@@ -1,0 +1,15 @@
+<div class="editor" data-editor>
+  <div class="editor-bar">
+    <button type="button" data-md="**" title="Fett"><b>B</b></button>
+    <button type="button" data-md="_" title="Kursiv"><i>I</i></button>
+    <button type="button" data-md-line="## " title="Zwischenüberschrift">H</button>
+    <button type="button" data-md-line="> " title="Zitat">❝</button>
+    <button type="button" data-md-line="- " title="Liste">•</button>
+    <button type="button" data-md-link title="Link">🔗</button>
+    <a href="/admin/medien" target="_blank" rel="noopener" title="Bild aus der Mediathek einfügen: dort den Markdown-Code kopieren">🖼</a>
+    <span class="spacer"></span>
+    <button type="button" data-preview-toggle>Vorschau</button>
+  </div>
+  <textarea name="<%= name %>" rows="<%= typeof rows !== 'undefined' ? rows : 18 %>" placeholder="Text in Markdown – **fett**, _kursiv_, [Link](https://…), ## Zwischenüberschrift"><%= value || '' %></textarea>
+  <div class="prose editor-preview" hidden></div>
+</div>

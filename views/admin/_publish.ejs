@@ -1,0 +1,19 @@
+<div class="panel">
+  <h2>Veröffentlichung</h2>
+  <label>Status
+    <select name="status">
+      <option value="draft" <%= item.status !== 'published' ? 'selected' : '' %>>Entwurf</option>
+      <option value="published" <%= item.status === 'published' ? 'selected' : '' %>>Veröffentlicht</option>
+    </select>
+  </label>
+  <label>Datum <small class="muted">(leer = jetzt; Zukunft = geplant)</small>
+    <input type="datetime-local" name="published_at" value="<%= h.toLocalInput(item.published_at) %>">
+  </label>
+  <label>URL-Kürzel <small class="muted">(optional)</small>
+    <input type="text" name="slug" value="<%= item.slug || '' %>" maxlength="80" pattern="[a-z0-9\-]*" placeholder="wird aus dem Titel erzeugt">
+  </label>
+  <button class="btn btn-block" type="submit">Speichern</button>
+  <% if (item.id && item.status === 'published') { %>
+    <a class="btn btn-ghost btn-block" href="<%= viewUrl %>" target="_blank" rel="noopener">Ansehen ↗</a>
+  <% } %>
+</div>

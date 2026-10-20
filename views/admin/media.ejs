@@ -1,0 +1,41 @@
+<%- include('_head') %>
+<header class="admin-head"><h1>Mediathek</h1></header>
+<form class="panel form upload-form" method="post" action="/admin/medien" enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrf() %>">
+  <div class="row">
+    <label class="grow">Bilder hochladen<input type="file" name="files" accept="image/*" multiple required></label>
+    <label class="grow">Alt-Text (optional)<input type="text" name="alt" maxlength="300"></label>
+    <button class="btn" type="submit">Hochladen</button>
+  </div>
+  <p class="small muted">Bilder werden automatisch verkleinert, als WebP gespeichert und von Metadaten (EXIF, GPS) befreit. Im Text einfügen: Markdown-Code kopieren und in den Editor einfügen.</p>
+</form>
+<div class="media-grid">
+  <% media.forEach(m => { %>
+  <figure class="media-item">
+    <a href="<%= h.img(m.file) %>" target="_blank" rel="noopener"><img src="<%= h.img(m.file, 'sm') %>" alt="" loading="lazy"></a>
+    <figcaption>
+      <code class="copy" data-copy="![<%= m.alt %>](<%= h.img(m.file) %>)" title="Klicken zum Kopieren">Markdown kopieren</code>
+      <span class="muted small"><%= m.width %>×<%= m.height %> · <%= m.uploader_name || '–' %></span>
+      <% if (currentUser.role === 'admin' || m.uploader_id === currentUser.id) { %>
+      <form method="post" action="/admin/medien/<%= m.id %>" class="row">
+        <input type="hidden" name="_csrf" value="<%= csrf() %>">
+        <input type="text" name="alt" value="<%= m.alt %>" placeholder="Alt-Text" maxlength="300" aria-label="Alt-Text">
+        <button class="btn btn-ghost btn-sm" type="submit">OK</button>
+      </form>
+      <form method="post" action="/admin/medien/<%= m.id %>/loeschen" data-confirm="Bild endgültig löschen? Es verschwindet auch aus allen Beiträgen.">
+        <input type="hidden" name="_csrf" value="<%= csrf() %>">
+        <button class="linklike danger small" type="submit">Löschen</button>
+      </form>
+      <% } %>
+    </figcaption>
+  </figure>
+  <% }) %>
+</div>
+<% if (pages > 1) { %>
+<nav class="pagination">
+  <% if (page > 1) { %><a class="btn btn-ghost" href="?seite=<%= page - 1 %>">← Neuer</a><% } else { %><span></span><% } %>
+  <span class="muted">Seite <%= page %> / <%= pages %></span>
+  <% if (page < pages) { %><a class="btn btn-ghost" href="?seite=<%= page + 1 %>">Älter →</a><% } else { %><span></span><% } %>
+</nav>
+<% } %>
+<%- include('_foot') %>

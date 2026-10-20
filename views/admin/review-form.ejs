@@ -1,0 +1,59 @@
+<%- include('_head') %>
+<header class="admin-head">
+  <h1><%= title %></h1>
+  <% if (review.id) { %>
+  <form method="post" action="/admin/podcasts/<%= review.id %>/loeschen" data-confirm="Dieses Review wirklich löschen?">
+    <input type="hidden" name="_csrf" value="<%= csrf() %>">
+    <button class="btn btn-danger" type="submit">Löschen</button>
+  </form>
+  <% } %>
+</header>
+<% if (error) { %><p class="alert alert-error" role="alert"><%= error %></p><% } %>
+<% if (query.gespeichert) { %><p class="alert alert-ok">Gespeichert.</p><% } %>
+
+<form class="form editor-layout" method="post" action="/admin/podcasts<%= review.id ? '/' + review.id : '' %>" enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrf() %>">
+  <div class="editor-main">
+    <section class="panel">
+      <h2>Podcast verlinken</h2>
+      <p class="small muted">Link zur Sendung oder zu einer einzelnen Folge einfügen und „Daten abrufen“ klicken – Name, Folge und Original-Cover werden automatisch übernommen.</p>
+      <label>Spotify-Link<input type="url" name="spotify_url" value="<%= review.spotify_url || '' %>" placeholder="https://open.spotify.com/episode/…" data-spotify-url></label>
+      <label>Apple-Podcasts-Link<input type="url" name="apple_url" value="<%= review.apple_url || '' %>" placeholder="https://podcasts.apple.com/de/podcast/…/id…?i=…" data-apple-url></label>
+      <button type="button" class="btn btn-ghost" data-podcast-fetch>Daten abrufen</button>
+      <p class="small muted" data-podcast-status></p>
+    </section>
+
+    <div class="row">
+      <label class="grow">Podcast<input type="text" name="podcast_name" value="<%= review.podcast_name || '' %>" maxlength="200" data-podcast-name></label>
+      <label class="grow">Herausgeber<input type="text" name="publisher" value="<%= review.publisher || '' %>" maxlength="200" data-podcast-publisher></label>
+    </div>
+    <label>Folge <small class="muted">(leer lassen, wenn der ganze Podcast besprochen wird)</small><input type="text" name="episode_title" value="<%= review.episode_title || '' %>" maxlength="300" data-podcast-episode></label>
+
+    <label>Titel des Reviews<input class="input-title" type="text" name="title" value="<%= review.title || '' %>" maxlength="200" required></label>
+    <label>Kurzfazit / Teaser<textarea name="excerpt" rows="2" maxlength="600" data-podcast-desc><%= review.excerpt || '' %></textarea></label>
+
+    <fieldset class="rating">
+      <legend>Bewertung</legend>
+      <% for (let i = 0; i <= 5; i++) { %>
+        <label><input type="radio" name="rating" value="<%= i %>" <%= Number(review.rating) === i ? 'checked' : '' %>> <%= i === 0 ? 'keine' : '★'.repeat(i) %></label>
+      <% } %>
+    </fieldset>
+
+    <label>Review-Text</label>
+    <%- include('_editor', { name: 'body_md', value: review.body_md }) %>
+  </div>
+
+  <aside class="editor-side">
+    <%- include('_publish', { item: review, viewUrl: '/podcasts/' + review.slug }) %>
+    <div class="panel">
+      <h2>Cover</h2>
+      <input type="hidden" name="artwork_id" value="<%= review.artwork_id || '' %>" data-artwork-id>
+      <div class="cover-preview" data-artwork-preview>
+        <% if (review.artwork_file) { %><img src="<%= h.img(review.artwork_file, 'sm') %>" alt=""><% } else { %><span class="muted small">Noch kein Cover – wird beim Abrufen automatisch geladen.</span><% } %>
+      </div>
+      <% if (review.artwork_file) { %><label class="check small"><input type="checkbox" name="remove_artwork" value="1"> Cover entfernen</label><% } %>
+      <label class="small">Eigenes Bild hochladen<input type="file" name="artwork" accept="image/*"></label>
+    </div>
+  </aside>
+</form>
+<%- include('_foot') %>

@@ -1,0 +1,25 @@
+<%- include('partials/head') %>
+<div class="wrap">
+  <header class="page-head author-head">
+    <% if (author.avatar) { %><img class="avatar avatar-xl" src="<%= h.img(author.avatar, 'sm') %>" alt=""><% } %>
+    <div>
+      <p class="kicker">Autor*in</p>
+      <h1><%= author.name %></h1>
+      <% if (author.bio) { %><p class="lede"><%= author.bio %></p><% } %>
+    </div>
+  </header>
+  <% if (posts.length) { %>
+  <section class="block">
+    <header class="block-head"><h2>Beiträge</h2></header>
+    <div class="grid grid-3"><% posts.forEach(p => { %><%- include('partials/post-card', { post: p }) %><% }) %></div>
+  </section>
+  <% } %>
+  <% if (reviews.length) { %>
+  <section class="block">
+    <header class="block-head"><h2>Podcast-Reviews</h2></header>
+    <div class="grid grid-4"><% reviews.forEach(r => { %><%- include('partials/review-card', { review: r }) %><% }) %></div>
+  </section>
+  <% } %>
+  <% if (!posts.length && !reviews.length) { %><p class="muted empty">Noch keine Veröffentlichungen.</p><% } %>
+</div>
+<%- include('partials/foot') %>

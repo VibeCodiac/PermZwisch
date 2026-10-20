@@ -1,0 +1,24 @@
+<%- include('partials/head') %>
+<div class="wrap">
+  <header class="page-head">
+    <h1>Suche</h1>
+    <form class="searchform" action="/suche" method="get" role="search">
+      <input type="search" name="q" value="<%= q %>" placeholder="Wonach suchst du?" minlength="2" maxlength="100" aria-label="Suchbegriff" autofocus>
+      <button class="btn" type="submit">Suchen</button>
+    </form>
+  </header>
+  <% if (q.length >= 2) { %>
+    <% if (!results.posts.length && !results.reviews.length) { %>
+      <p class="muted">Keine Treffer für „<%= q %>“.</p>
+    <% } %>
+    <% if (results.posts.length) { %>
+      <section class="block"><header class="block-head"><h2>Beiträge (<%= results.posts.length %>)</h2></header>
+      <div class="grid grid-3"><% results.posts.forEach(p => { %><%- include('partials/post-card', { post: p }) %><% }) %></div></section>
+    <% } %>
+    <% if (results.reviews.length) { %>
+      <section class="block"><header class="block-head"><h2>Podcast-Reviews (<%= results.reviews.length %>)</h2></header>
+      <div class="grid grid-4"><% results.reviews.forEach(r => { %><%- include('partials/review-card', { review: r }) %><% }) %></div></section>
+    <% } %>
+  <% } %>
+</div>
+<%- include('partials/foot') %>
