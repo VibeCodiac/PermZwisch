@@ -6,7 +6,7 @@ Ein schlichter, moderner Blog mit zwei Bereichen:
   - **Artikel**: Text in Markdown, Titelbild und optional ein Verweis auf einen externen Artikel.
   - **Link-Empfehlung**: verweist auf einen Artikel einer anderen Seite. Titel, Beschreibung, Quelle und Vorschaubild werden automatisch abgerufen.
   - **Fotostrecke**: mehrere Fotos mit Bildunterschriften und Lightbox.
-- **Apocalypse Podcasts** (Podcast-Reviews; Name in den Einstellungen änderbar): Spotify- und/oder Apple-Podcasts-Link einfügen. Podcast-Name, Folge, Herausgeber und das **Original-Cover** werden automatisch geholt. Dazu kommen eine Sternebewertung, Buttons „Auf Spotify hören“ und „In Apple Podcasts öffnen“ sowie der eingebettete Player (lädt erst nach Einwilligung).
+- **Apocalypse Podcast Review** (Podcast-Besprechungen; Name in den Einstellungen änderbar): Spotify- und/oder Apple-Podcasts-Link einfügen. Podcast-Name, Folge, Herausgeber und das **Original-Cover** werden automatisch geholt. Dazu kommen eine Sternebewertung, Buttons „Auf Spotify hören“ und „In Apple Podcasts öffnen“ sowie der eingebettete Player (lädt erst nach Einwilligung).
 
 Weitere Funktionen:
 

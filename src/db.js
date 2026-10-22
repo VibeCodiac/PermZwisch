@@ -127,10 +127,12 @@ seedSections.forEach(([slug, name, desc], i) => insertSection.run(slug, name, de
 const seedSettings = {
   site_title: 'Permanente Zwischenlagerung',
   site_tagline: 'Texte über Politik, Kultur und Gesellschaft.',
-  podcast_title: 'Apocalypse Podcasts',
+  podcast_title: 'Apocalypse Podcast Review',
 };
 const insertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
 for (const [k, v] of Object.entries(seedSettings)) insertSetting.run(k, v);
+// Umbenennung des Podcast-Bereichs (nur, wenn der alte Standardname noch gesetzt ist)
+db.prepare("UPDATE settings SET value = 'Apocalypse Podcast Review' WHERE key = 'podcast_title' AND value = 'Apocalypse Podcasts'").run();
 
 const impressumMd = `## Angaben gemäß § 5 DDG
 
