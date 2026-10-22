@@ -83,7 +83,7 @@ www.example.de {
 ## Datenschutz & Cookies
 
 - Öffentliche Besucher\*innen erhalten **keine** Cookies außer der eigenen Cookie-Entscheidung, und es gibt kein Tracking.
-- Es werden keine externen Schriftarten oder CDNs geladen. Die Schriften (Chakra Petch, IBM Plex, Big Shoulders Stencil; alle SIL Open Font License) liegen in `public/fonts/`.
+- Es werden keine externen Schriftarten oder CDNs geladen. Schrift ist **Aptos**, sofern auf dem Gerät installiert (Windows 11, Microsoft 365); sonst das ähnliche, lokal gehostete **Figtree** (SIL Open Font License, `public/fonts/`).
 - Podcast-Cover und Vorschaubilder werden **lokal gespeichert**, Besucher\*innen kontaktieren also keine Drittanbieter.
 - Spotify- und Apple-Player laden nur nach Einwilligung („Zwei-Klick-Lösung“ plus Cookie-Banner). Die Einstellung lässt sich im Footer jederzeit ändern.
 
