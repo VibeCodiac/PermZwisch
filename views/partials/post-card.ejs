@@ -18,6 +18,6 @@
     </p>
     <h3 class="card-title"><a href="/artikel/<%= p.slug %>"><%= p.title %></a></h3>
     <% if (p.excerpt && v !== 'compact') { %><p class="card-excerpt"><%= p.excerpt %></p><% } %>
-    <p class="meta"><a href="/autor/<%= p.author_slug %>"><%= p.author_name %></a> · <time datetime="<%= h.isoDate(p.published_at) %>"><%= h.formatDate(p.published_at) %></time></p>
+    <p class="meta"><span class="lagernr">Nº <%= String(p.id).padStart(4, '0') %></span> · <a href="/autor/<%= p.author_slug %>"><%= p.author_name %></a> · <time datetime="<%= h.isoDate(p.published_at) %>"><%= h.formatDate(p.published_at) %></time></p>
   </div>
 </article>

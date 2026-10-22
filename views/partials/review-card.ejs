@@ -8,7 +8,7 @@
     <% } %>
   </a>
   <div class="rcard-body">
-    <p class="kicker"><%= r.podcast_name %></p>
+    <p class="kicker"><span><%= r.podcast_name %></span></p>
     <h3 class="card-title"><a href="/podcasts/<%= r.slug %>"><%= r.title %></a></h3>
     <% if (r.rating) { %><p class="stars" aria-label="<%= r.rating %> von 5 Sternen"><%= h.stars(r.rating) %></p><% } %>
     <p class="meta"><%= r.author_name %> · <%= h.formatDate(r.published_at) %></p>

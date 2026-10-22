@@ -12,7 +12,7 @@
       <% if (post.author_avatar) { %><img class="avatar" src="<%= h.img(post.author_avatar, 'sm') %>" alt=""><% } %>
       <div>
         <a href="/autor/<%= post.author_slug %>"><strong><%= post.author_name %></strong></a><br>
-        <span class="muted"><time datetime="<%= h.isoDate(post.published_at) %>"><%= h.formatDate(post.published_at) %></time>
+        <span class="muted"><span class="lagernr">Nº <%= String(post.id).padStart(4, '0') %></span> · <time datetime="<%= h.isoDate(post.published_at) %>"><%= h.formatDate(post.published_at) %></time>
         <% if (post.kind === 'article') { %> · <%= h.readingTime(post.body_md) %> Min. Lesezeit<% } %></span>
       </div>
     </div>

@@ -7,10 +7,10 @@
       <% } else { %><span class="art-placeholder big">🎧</span><% } %>
     </div>
     <div class="review-info">
-      <p class="kicker"><%= review.podcast_name %><% if (review.publisher) { %> · <span class="muted"><%= review.publisher %></span><% } %></p>
+      <p class="kicker"><span><%= review.podcast_name %></span><% if (review.publisher) { %><span class="kicker-ext"><%= review.publisher %></span><% } %></p>
       <h1><%= review.title %></h1>
       <% if (review.episode_title) { %><p class="episode">Folge: <strong><%= review.episode_title %></strong></p><% } %>
-      <% if (review.rating) { %><p class="stars stars-lg" aria-label="Bewertung: <%= review.rating %> von 5 Sternen"><%= h.stars(review.rating) %></p><% } %>
+      <% if (review.rating) { %><p class="stars stars-lg" aria-label="Bewertung: <%= review.rating %> von 5 Sternen"><%= h.stars(review.rating) %><span class="rating-num"><%= review.rating %>/5</span></p><% } %>
       <div class="listen">
         <% if (spotify) { %>
         <a class="listen-btn spotify" href="<%= spotify.url %>" target="_blank" rel="noopener noreferrer">
