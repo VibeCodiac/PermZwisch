@@ -10,7 +10,7 @@ Die Preise ändern sich gelegentlich, bitte beim Anbieter prüfen.
 
 ## 1. Domain kaufen
 
-Kaufe deine Wunsch-Domain, z. B. `permanente-zwischenlagerung.de`, bei einem Domain-Anbieter. Die Domain kann auch direkt bei Hetzner gekauft werden (Schritt 2), dann ist alles an einem Ort. Andere übliche Anbieter sind z. B. INWX, Netcup oder Strato.
+Kaufe die Domain **`permanent-blog.de`** bei einem Domain-Anbieter. Vor dem Kauf zeigt dir der Anbieter, ob sie noch frei ist. Die Domain kann auch direkt bei Hetzner gekauft werden (Schritt 2), dann ist alles an einem Ort. Andere übliche Anbieter sind z. B. INWX, Netcup oder Strato.
 
 Wichtig ist nur, dass du dort später **DNS-Einträge** bearbeiten kannst. Das können alle diese Anbieter.
 
@@ -24,7 +24,7 @@ Wichtig ist nur, dass du dort später **DNS-Einträge** bearbeiten kannst. Das k
    - **Netzwerk:** öffentliche IPv4 und IPv6 aktiviert lassen
    - **SSH-Key:** optional. Ohne Key schickt Hetzner dir ein Root-Passwort per E-Mail.
    - **Backups:** aktivieren. Dann gibt es tägliche Sicherungen des ganzen Servers.
-   - **Cloud config:** Inhalt der Datei [`deploy/cloud-config.yaml`](deploy/cloud-config.yaml) einfügen und **nur die Zeile `DEINE-DOMAIN.de`** durch deine Domain ersetzen (ohne `www` und ohne `https://`).
+   - **Cloud config:** Inhalt der Datei [`deploy/cloud-config.yaml`](deploy/cloud-config.yaml) einfügen. Die Domain `permanent-blog.de` ist dort schon eingetragen. Falls du eine andere Domain kaufst, ändere nur diese eine Zeile (ohne `www` und ohne `https://`).
    - **Name:** z. B. `blog`
 3. **Erstellen & kaufen.** Nach etwa einer Minute siehst du die **IPv4-Adresse** (z. B. `203.0.113.10`) und die **IPv6-Adresse** des Servers. Notiere dir beide.
 
@@ -61,7 +61,7 @@ Falls die Meldung kommt, dass der Dienst nicht läuft, ist die Installation noch
 
 ## 5. Loslegen
 
-1. **`https://DEINE-DOMAIN.de/admin`** öffnen und anmelden.
+1. **`https://permanent-blog.de/admin`** öffnen und anmelden.
 2. Unter **Einstellungen → Rechtliche Seiten** das **Impressum** und die **Datenschutzerklärung** ausfüllen (Platzhalter in `[eckigen Klammern]` ersetzen). Beim Hosting-Anbieter in der Datenschutzerklärung eintragen: *Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen*. Bitte vorher prüfen, ob die Adresse noch aktuell ist.
 3. Weitere Autor\*innen unter **Nutzer\*innen** anlegen.
 4. In der Hetzner Console unter **Konto → Datenschutz** den **Auftragsverarbeitungsvertrag (AVV)** abschließen. Das sind ein paar Klicks und wird für die DSGVO benötigt.
@@ -87,7 +87,7 @@ Beiträge, Bilder und Konten bleiben dabei erhalten.
 **Was läuft auf dem Server?**
 
 - **Blog-App** (Node.js) in einem Docker-Container. Die Daten (Datenbank und Bilder) liegen in einem eigenen Docker-Volume.
-- **Caddy** als Webserver davor. Er kümmert sich um HTTPS-Zertifikate (Let's Encrypt), leitet `http://` und `www.` auf `https://DEINE-DOMAIN.de` um und speichert keine Zugriffsprotokolle.
+- **Caddy** als Webserver davor. Er kümmert sich um HTTPS-Zertifikate (Let's Encrypt), leitet `http://` und `www.` auf `https://permanent-blog.de` um und speichert keine Zugriffsprotokolle.
 - **Firewall (ufw)**: Offen sind nur SSH sowie Port 80 und 443.
 - **fail2ban** blockiert wiederholte SSH-Anmeldeversuche.
 - **Automatische Sicherheitsupdates** für das Betriebssystem.

@@ -1,9 +1,9 @@
 #cloud-config
 # Beim Erstellen des Servers bei Hetzner unter „Cloud config“ einfügen.
-# NUR die Domain in der nächsten Zeile anpassen (ohne www und ohne https://):
+# Domain des Blogs (ohne www und ohne https://) – bei Bedarf hier ändern:
 write_files:
   - path: /root/blog-domain
-    content: DEINE-DOMAIN.de
+    content: permanent-blog.de
 
 package_update: true
 package_upgrade: true
