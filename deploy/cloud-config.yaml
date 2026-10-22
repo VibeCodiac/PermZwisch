@@ -14,6 +14,9 @@ packages:
   - unattended-upgrades
 
 runcmd:
+  # 2 GB Auslagerungsspeicher, damit auch kleine Server (1 GB RAM) genug Luft haben
+  - fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
   # Docker installieren
   - curl -fsSL https://get.docker.com | sh
   # Firewall: nur SSH und Web
