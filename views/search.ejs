@@ -16,7 +16,7 @@
       <div class="grid grid-3"><% results.posts.forEach(p => { %><%- include('partials/post-card', { post: p }) %><% }) %></div></section>
     <% } %>
     <% if (results.reviews.length) { %>
-      <section class="block"><header class="block-head"><h2>Podcast-Reviews (<%= results.reviews.length %>)</h2></header>
+      <section class="block"><header class="block-head"><h2><%= site.podcast_title %> (<%= results.reviews.length %>)</h2></header>
       <div class="grid grid-4"><% results.reviews.forEach(r => { %><%- include('partials/review-card', { review: r }) %><% }) %></div></section>
     <% } %>
   <% } %>

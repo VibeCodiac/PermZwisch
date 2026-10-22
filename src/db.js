@@ -125,8 +125,9 @@ const insertSection = db.prepare(
 seedSections.forEach(([slug, name, desc], i) => insertSection.run(slug, name, desc, i));
 
 const seedSettings = {
-  site_title: 'Rüdigers Blog',
-  site_tagline: 'Politik, Kultur, Gesellschaft – und Podcasts.',
+  site_title: 'Permanente Zwischenlagerung',
+  site_tagline: 'Texte über Politik, Kultur und Gesellschaft.',
+  podcast_title: 'Apocalypse Podcasts',
 };
 const insertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
 for (const [k, v] of Object.entries(seedSettings)) insertSetting.run(k, v);

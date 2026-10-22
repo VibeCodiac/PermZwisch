@@ -97,10 +97,12 @@ main { min-height: 60vh; padding-bottom: 4rem; }
 .subnav-inner::-webkit-scrollbar { display: none; }
 .subnav a { padding: .65rem 0; font-size: .9rem; font-weight: 500; text-decoration: none; color: var(--muted); white-space: nowrap; border-bottom: 2px solid transparent; }
 .subnav a:hover, .subnav a.is-active { color: var(--text); border-bottom-color: var(--accent); }
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .brand-tag { display: none; }
-  .masthead-top { gap: .6rem; }
-  .switch a { padding: .35em .7em; font-size: .82rem; }
+  .masthead-top { flex-wrap: wrap; gap: .6rem; padding-top: .8rem; padding-bottom: .7rem; }
+  .brand { flex: 1 1 calc(100% - 50px); }
+  .switch { order: 3; width: 100%; }
+  .switch a { flex: 1; text-align: center; padding: .4em .7em; font-size: .85rem; }
 }
 
 /* ===== Karten & Raster ===== */

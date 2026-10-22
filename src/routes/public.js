@@ -50,7 +50,7 @@ router.get('/podcasts', (req, res) => {
   const page = pageNumber(req);
   const total = countReviews();
   const reviews = latestReviews({ limit: PER_PAGE, offset: (page - 1) * PER_PAGE });
-  res.render('podcasts', { title: 'Podcast-Reviews', reviews, page, pages: Math.ceil(total / PER_PAGE) });
+  res.render('podcasts', { title: res.locals.site.podcast_title, reviews, page, pages: Math.ceil(total / PER_PAGE) });
 });
 
 router.get('/podcasts/:slug', (req, res, next) => {
@@ -143,7 +143,7 @@ router.get('/feed.xml', (req, res) => {
 router.get('/podcasts/feed.xml', (req, res) => {
   const site = res.locals.site;
   rss(res, {
-    title: `${site.site_title} – Podcast-Reviews`,
+    title: `${site.site_title} – ${site.podcast_title}`,
     link: `${config.baseUrl}/podcasts`,
     description: 'Besprechungen von Podcasts',
     items: latestReviews({ limit: 30 }).map((r) => ({

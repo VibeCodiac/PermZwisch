@@ -16,7 +16,7 @@
   <% } %>
   <% if (reviews.length) { %>
   <section class="block">
-    <header class="block-head"><h2>Podcast-Reviews</h2></header>
+    <header class="block-head"><h2><%= site.podcast_title %></h2></header>
     <div class="grid grid-4"><% reviews.forEach(r => { %><%- include('partials/review-card', { review: r }) %><% }) %></div>
   </section>
   <% } %>

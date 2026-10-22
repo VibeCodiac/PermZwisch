@@ -20,7 +20,7 @@
     <nav>
       <a href="/admin" <%- path === '/' ? 'class="is-active"' : '' %>>Übersicht</a>
       <a href="/admin/beitraege" <%- path.startsWith('/beitraege') ? 'class="is-active"' : '' %>>Beiträge</a>
-      <a href="/admin/podcasts" <%- path.startsWith('/podcasts') ? 'class="is-active"' : '' %>>Podcast-Reviews</a>
+      <a href="/admin/podcasts" <%- path.startsWith('/podcasts') ? 'class="is-active"' : '' %>><%= site.podcast_title %></a>
       <a href="/admin/medien" <%- path.startsWith('/medien') ? 'class="is-active"' : '' %>>Mediathek</a>
       <a href="/admin/profil" <%- path.startsWith('/profil') ? 'class="is-active"' : '' %>>Mein Profil</a>
       <% if (currentUser.role === 'admin') { %>

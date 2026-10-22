@@ -20,6 +20,7 @@ router.post('/einstellungen', (req, res) => {
   const set = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
   set.run('site_title', str(req.body.site_title, 100) || 'Blog');
   set.run('site_tagline', str(req.body.site_tagline, 200));
+  set.run('podcast_title', str(req.body.podcast_title, 60) || 'Podcasts');
   res.redirect('/admin/einstellungen?ok=1');
 });
 

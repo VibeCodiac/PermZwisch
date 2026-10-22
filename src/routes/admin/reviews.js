@@ -23,7 +23,7 @@ router.get('/', (req, res) => {
               FROM reviews r JOIN users u ON u.id = r.author_id LEFT JOIN media m ON m.id = r.artwork_id
               ${isAdmin ? '' : 'WHERE r.author_id = ?'} ORDER BY r.updated_at DESC`)
     .all(...(isAdmin ? [] : [req.user.id]));
-  res.render('admin/reviews', { title: 'Podcast-Reviews', reviews });
+  res.render('admin/reviews', { title: res.locals.site.podcast_title, reviews });
 });
 
 /** Metadaten + Cover von Spotify/Apple abrufen (AJAX aus dem Formular). */
