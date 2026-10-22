@@ -20,7 +20,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #141413;
     --surface: #1c1b19;
     --text: #edebe6;
@@ -33,6 +33,19 @@
     --ok: #4ec98a;
     color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #141413;
+  --surface: #1c1b19;
+  --text: #edebe6;
+  --muted: #a29d93;
+  --line: #2f2d29;
+  --accent: #e57a52;
+  --accent-text: #141413;
+  --pod: #a592ff;
+  --danger: #ff6b5e;
+  --ok: #4ec98a;
+  color-scheme: dark;
 }
 body.mode-podcasts { --accent: var(--pod); }
 
@@ -82,7 +95,7 @@ main { min-height: 60vh; padding-bottom: 4rem; }
 .linklike.danger { color: var(--danger); }
 
 /* ===== Kopfbereich ===== */
-.masthead { border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: 20; }
+.masthead { border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; }
 .masthead-top { display: flex; align-items: center; gap: 1rem; padding-top: 1rem; padding-bottom: .9rem; }
 .brand { text-decoration: none; margin-right: auto; min-width: 0; }
 .brand:hover { color: inherit; }

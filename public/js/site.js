@@ -4,14 +4,22 @@
 
   const COOKIE = 'consent';
 
+  let memoryConsent = null; // Fallback, falls Cookies blockiert sind
+
   function getConsent() {
-    const m = document.cookie.match(/(?:^|;\s*)consent=(essential|external)/);
-    return m ? m[1] : null;
+    try {
+      const m = document.cookie.match(/(?:^|;\s*)consent=(essential|external)/);
+      if (m) return m[1];
+    } catch { /* Cookies nicht verfügbar */ }
+    return memoryConsent;
   }
 
   function setConsent(value) {
-    const secure = location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${COOKIE}=${value}; Max-Age=31536000; Path=/; SameSite=Lax${secure}`;
+    memoryConsent = value;
+    try {
+      const secure = location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `${COOKIE}=${value}; Max-Age=31536000; Path=/; SameSite=Lax${secure}`;
+    } catch { /* Cookies nicht verfügbar */ }
   }
 
   // ---- Banner ----
