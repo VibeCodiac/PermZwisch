@@ -31,28 +31,11 @@ Dann <http://localhost:3000> öffnen. Der Login liegt unter <http://localhost:30
 
 Tests: `npm test`
 
-## Betrieb (Produktion)
+## Online stellen
 
-1. `.env.example` nach `.env` kopieren und ausfüllen. Pflicht sind `SESSION_SECRET` (lang und zufällig) und `BASE_URL`.
-2. Die App hinter einem Reverse-Proxy mit HTTPS betreiben (z. B. Caddy oder nginx) und `TRUST_PROXY=1` setzen. In Produktion ist HTTPS Pflicht, sonst funktionieren die Login-Cookies nicht.
-3. Zeitzone `TZ=Europe/Berlin` setzen, damit die Veröffentlichungszeiten stimmen. Im Docker-Image ist das bereits eingestellt.
-4. **Backups**: den Ordner `data/` regelmäßig sichern.
+Schritt-für-Schritt-Anleitung (Hetzner-Server, eigene Domain, automatisches HTTPS): **[HOSTING.md](HOSTING.md)**
 
-Mit Docker:
-
-```bash
-docker build -t blog .
-docker run -d --name blog -p 3000:3000 --env-file .env -v blog-data:/data blog
-docker exec -it blog node scripts/create-admin.js
-```
-
-Beispiel für Caddy (HTTPS automatisch):
-
-```
-www.example.de {
-    reverse_proxy localhost:3000
-}
-```
+Kurzfassung für Technikerfahrene: Auf einem Server mit Docker reicht `./scripts/server-setup.sh meine-domain.de`. Das erzeugt die `.env` und startet App und Caddy (`docker-compose.yml`, `deploy/Caddyfile`). Updates gehen mit `./scripts/update.sh`.
 
 ## Sicherheit
 

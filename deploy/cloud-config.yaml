@@ -1,0 +1,31 @@
+#cloud-config
+# Beim Erstellen des Servers bei Hetzner unter „Cloud config“ einfügen.
+# NUR die Domain in der nächsten Zeile anpassen (ohne www und ohne https://):
+write_files:
+  - path: /root/blog-domain
+    content: DEINE-DOMAIN.de
+
+package_update: true
+package_upgrade: true
+packages:
+  - git
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+
+runcmd:
+  # Docker installieren
+  - curl -fsSL https://get.docker.com | sh
+  # Firewall: nur SSH und Web
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow OpenSSH
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw allow 443/udp
+  - ufw --force enable
+  # Automatische Sicherheitsupdates
+  - systemctl enable --now unattended-upgrades
+  # Blog holen und starten
+  - git clone https://github.com/VibeCodiac/PermZwisch /opt/permzwisch
+  - bash /opt/permzwisch/scripts/server-setup.sh "$(tr -d '[:space:]' < /root/blog-domain)"

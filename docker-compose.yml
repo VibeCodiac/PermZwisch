@@ -1,0 +1,32 @@
+# Startet den Blog plus Caddy (Webserver mit automatischem HTTPS über Let's Encrypt).
+# Die Domain kommt aus der Datei .env (DOMAIN=...), siehe HOSTING.md.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - blog-data:/data
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN fehlt in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  blog-data:
+  caddy-data:
+  caddy-config:

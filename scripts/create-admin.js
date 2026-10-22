@@ -13,8 +13,47 @@ const rl = readline.createInterface({ input: stdin, output: stdout });
 
 const email = (values.email || (await rl.question('E-Mail: '))).trim().toLowerCase();
 const name = (values.name || (await rl.question('Name: '))).trim();
-const password = process.env.ADMIN_PASSWORD || (await rl.question('Passwort (min. 12 Zeichen): '));
 rl.close();
+
+/** Passwort abfragen, ohne es auf dem Bildschirm anzuzeigen. */
+function askHidden(prompt) {
+  return new Promise((resolve) => {
+    stdout.write(prompt);
+    if (!stdin.isTTY) {
+      // Eingabe kommt aus einer Pipe: einfach eine Zeile lesen
+      const r = readline.createInterface({ input: stdin });
+      r.once('line', (line) => { r.close(); stdout.write('\n'); resolve(line); });
+      return;
+    }
+    stdin.setRawMode(true);
+    stdin.resume();
+    let value = '';
+    const onData = (buf) => {
+      for (const ch of buf.toString('utf8')) {
+        if (ch === '\r' || ch === '\n') {
+          stdin.setRawMode(false);
+          stdin.pause();
+          stdin.off('data', onData);
+          stdout.write('\n');
+          return resolve(value);
+        }
+        if (ch === '\u0003') process.exit(130); // Strg+C
+        if (ch === '\u007f' || ch === '\b') value = value.slice(0, -1);
+        else value += ch;
+      }
+    };
+    stdin.on('data', onData);
+  });
+}
+
+let password = process.env.ADMIN_PASSWORD;
+if (!password) {
+  password = await askHidden('Passwort (min. 12 Zeichen, wird nicht angezeigt): ');
+  if ((await askHidden('Passwort wiederholen: ')) !== password) {
+    console.error('Die Passwörter stimmen nicht überein.');
+    process.exit(1);
+  }
+}
 
 const problem = passwordProblem(password);
 if (!email || !name || problem) {
