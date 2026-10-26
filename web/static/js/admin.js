@@ -22,6 +22,77 @@
     if (msg && !window.confirm(msg)) e.preventDefault();
   });
 
+  // ---- Fotos vor dem Hochladen verkleinern ----
+  // Handyfotos sind oft 5–10 MB groß; der Server erlaubt pro Anfrage höchstens ca. 30 MB.
+  // Größer als 2400 px wird auf der Website ohnehin nichts angezeigt.
+  const MAX_EDGE = 2400;
+  const MAX_TOTAL = 30 * 1024 * 1024;
+
+  async function shrink(file) {
+    if (!/^image\/(jpeg|png|webp|heic|heif)$/.test(file.type) || file.size < 1024 * 1024) return file;
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close?.();
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.88));
+      if (!blob || blob.size >= file.size) return file;
+      return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+    } catch {
+      return file; // Browser kann das Format nicht lesen: Original hochladen, der Server prüft es
+    }
+  }
+
+  document.addEventListener('submit', async (e) => {
+    const form = e.target;
+    if (e.defaultPrevented || form.enctype !== 'multipart/form-data') return;
+    const inputs = [...form.querySelectorAll('input[type=file]')].filter((i) => i.files.length);
+    if (!inputs.length) return;
+    e.preventDefault();
+
+    const button = e.submitter || form.querySelector('[type=submit]');
+    const label = button?.textContent;
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Fotos werden vorbereitet …';
+    }
+    try {
+      const data = new FormData(form);
+      let total = 0;
+      for (const input of inputs) {
+        data.delete(input.name);
+        for (const file of input.files) {
+          const small = await shrink(file);
+          total += small.size;
+          data.append(input.name, small, small.name);
+        }
+      }
+      if (total > MAX_TOTAL) {
+        throw new Error('Zusammen sind die Fotos zu groß. Bitte in mehreren Schritten hochladen (z. B. je 10 Fotos).');
+      }
+      if (button) button.textContent = 'Wird hochgeladen …';
+      const res = await fetch(form.action, { method: 'POST', body: data, credentials: 'same-origin' });
+      if (res.status === 413) throw new Error('Die Fotos sind zu groß. Bitte weniger Fotos auf einmal hochladen.');
+      if (res.redirected) {
+        window.location.href = res.url;
+        return;
+      }
+      // Fehlerseite (z. B. fehlender Titel) anzeigen
+      document.open();
+      document.write(await res.text());
+      document.close();
+    } catch (err) {
+      window.alert(err.message || 'Hochladen fehlgeschlagen. Bitte erneut versuchen.');
+      if (button) {
+        button.disabled = false;
+        button.textContent = label;
+      }
+    }
+  });
+
   // ---- Markdown-Editor ----
   document.querySelectorAll('[data-editor]').forEach((editor) => {
     const ta = editor.querySelector('textarea');

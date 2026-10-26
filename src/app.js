@@ -1,19 +1,18 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
-import session from 'express-session';
-import SqliteStoreFactory from 'better-sqlite3-session-store';
 import { config } from './config.js';
-import { db, getSettings } from './db.js';
+import { snapshot } from './data.js';
+import { defaultSettings } from './store/defaults.js';
+import { getFiles } from './store/files.js';
 import { securityHeaders, generalLimiter, loadUser, csrfToken } from './lib/security.js';
+import { sessionMiddleware } from './lib/session.js';
 import { viewHelpers } from './lib/helpers.js';
-import { sections } from './lib/queries.js';
 import { UserError } from './lib/images.js';
 import publicRoutes from './routes/public.js';
 import adminRoutes from './routes/admin/index.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SqliteStore = SqliteStoreFactory(session);
 
 export function createApp() {
   const app = express();
@@ -25,25 +24,27 @@ export function createApp() {
   app.use(securityHeaders);
   app.use(generalLimiter);
 
-  app.use(
-    '/static',
-    express.static(path.join(root, 'public'), { maxAge: config.isProd ? '7d' : 0, index: false })
-  );
-  app.use(
-    '/uploads',
-    express.static(config.uploadDir, {
-      maxAge: '30d',
-      immutable: true,
-      index: false,
-      dotfiles: 'deny',
-      setHeaders: (res) => res.setHeader('Content-Security-Policy', "default-src 'none'"),
-    })
-  );
+  // Auf Firebase liefert Hosting /static direkt aus; lokal übernimmt das Express.
+  app.use('/static', express.static(path.join(root, 'web', 'static'), { maxAge: config.isProd ? '7d' : 0, index: false }));
 
-  app.use((req, res, next) => {
+  // Bilder aus der Mediathek (lokaler Ordner bzw. Cloud Storage)
+  app.get('/uploads/:name', async (req, res, next) => {
+    const file = await (await getFiles()).open(req.params.name);
+    if (!file) return next();
+    res.set({
+      'Content-Type': 'image/webp',
+      'Content-Length': String(file.size),
+      'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable',
+      'Content-Security-Policy': "default-src 'none'",
+    });
+    file.stream.on('error', next).pipe(res);
+  });
+
+  app.use(async (req, res, next) => {
+    const s = await snapshot();
     res.locals.h = viewHelpers;
-    res.locals.site = getSettings();
-    res.locals.navSections = sections();
+    res.locals.site = s.settings;
+    res.locals.navSections = s.sections;
     res.locals.path = req.path;
     res.locals.query = req.query;
     res.locals.baseUrl = config.baseUrl;
@@ -56,24 +57,14 @@ export function createApp() {
   app.use(express.json({ limit: '100kb' }));
 
   // Sitzungen nur für den Redaktionsbereich – öffentliche Besucher bekommen kein Cookie.
-  const sessionMiddleware = session({
-    name: config.isProd ? '__Host-sid' : 'sid',
-    secret: config.sessionSecret,
-    store: new SqliteStore({ client: db, expired: { clear: true, intervalMs: 15 * 60 * 1000 } }),
-    resave: false,
-    saveUninitialized: false,
-    rolling: true,
-    cookie: {
-      httpOnly: true,
-      secure: config.isProd,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 8 * 60 * 60 * 1000,
-    },
-  });
   app.use('/admin', sessionMiddleware, loadUser);
-
   app.use('/admin', adminRoutes);
+
+  // Öffentliche Seiten sind für alle gleich: kurz im CDN von Firebase Hosting zwischenspeichern
+  app.use((req, res, next) => {
+    if (req.method === 'GET') res.set('Cache-Control', 'public, max-age=0, s-maxage=120');
+    next();
+  });
   app.use('/', publicRoutes);
 
   app.use((req, res) => {
@@ -92,9 +83,18 @@ export function createApp() {
     } else {
       console.error(err);
     }
+    res.set('Cache-Control', 'no-store');
     if (req.accepts(['html', 'json']) === 'json' || req.xhr) {
       return res.status(status).json({ error: message });
     }
+    // Falls schon das Laden der Inhalte fehlschlug: mit Grundwerten rendern
+    res.locals.site ??= defaultSettings;
+    res.locals.navSections ??= [];
+    res.locals.h ??= viewHelpers;
+    res.locals.path ??= req.path;
+    res.locals.baseUrl ??= config.baseUrl;
+    res.locals.mode ??= 'magazin';
+    res.locals.csrf ??= () => '';
     res.status(status).render('errors/error', { title: 'Fehler', status, message });
   });
 

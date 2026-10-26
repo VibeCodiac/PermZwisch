@@ -11,13 +11,24 @@ Ein schlichter, moderner Blog mit zwei Bereichen:
 Weitere Funktionen:
 
 - Redaktionsbereich unter `/admin` für **mehrere Autor\*innen** mit zwei Rollen: Admin und Autor\*in.
-- Mediathek, Autorenseiten, Suche, RSS-Feeds, Sitemap und Dark Mode.
+- Mediathek, Autorenseiten, Suche, RSS-Feeds und Sitemap.
+- Fotos werden schon im Browser auf Webgröße verkleinert, das spart Datenvolumen beim Hochladen vom Handy.
 - Geplante Veröffentlichungen: Ein Datum in der Zukunft wird erst zu diesem Zeitpunkt sichtbar.
 - Impressum, Datenschutzerklärung und „Über uns“ lassen sich im Admin-Bereich bearbeiten (Vorlagen sind vorhanden).
 
 ## Technik
 
-Node.js (≥ 20), Express, SQLite (`better-sqlite3`), EJS-Templates und `sharp` für die Bildverarbeitung. Es braucht keinen separaten Datenbankserver: Alles liegt im Ordner `data/` (Datenbank und Uploads).
+Node.js 22, Express, EJS-Templates und `sharp` für die Bildverarbeitung. Online läuft der Blog auf **Firebase** in Frankfurt (`europe-west3`):
+
+| Teil | Firebase/Google-Dienst |
+|---|---|
+| Statische Dateien (CSS, Schriften, Skripte) und Zwischenspeicher (CDN) | Firebase Hosting |
+| Die App selbst | Cloud Functions (2. Generation, `src/index.js`) |
+| Beiträge, Reviews, Nutzer*innen, Einstellungen | Firestore |
+| Fotos und Cover | Cloud Storage (eigener, nicht öffentlicher Bucket) |
+| Sitzungsschlüssel | Secret Manager |
+
+Lokal und in den Tests ersetzt eine JSON-Datei (`data/blog.json`) bzw. der Arbeitsspeicher die Datenbank, Bilder liegen dann in `data/uploads/`. Umschalten lässt sich das mit `DATA_DRIVER` (`firestore`, `file` oder `memory`).
 
 ## Schnellstart (lokal)
 
@@ -31,11 +42,18 @@ Dann <http://localhost:3000> öffnen. Der Login liegt unter <http://localhost:30
 
 Tests: `npm test`
 
-## Online stellen
+## Online stellen (Firebase)
 
-Schritt-für-Schritt-Anleitung (Hetzner-Server, eigene Domain, automatisches HTTPS): **[HOSTING.md](HOSTING.md)**
+Schritt-für-Schritt-Anleitung, auch vom iPad aus machbar: **[HOSTING.md](HOSTING.md)**
 
-Kurzfassung für Technikerfahrene: Auf einem Server mit Docker reicht `./scripts/server-setup.sh meine-domain.de`. Das erzeugt die `.env` und startet App und Caddy (`docker-compose.yml`, `deploy/Caddyfile`). Updates gehen mit `./scripts/update.sh`.
+Kurzfassung: Firebase-Projekt mit Blaze-Tarif anlegen, dann in der Google Cloud Shell:
+
+```bash
+git clone https://github.com/VibeCodiac/PermZwisch.git && cd PermZwisch
+./scripts/firebase-setup.sh PROJEKT-ID permanent-blog.de   # einmalig: Dienste, Datenbank, Speicher, Upload
+./scripts/firebase-admin.sh                                 # Admin-Konto anlegen
+./scripts/firebase-deploy.sh                                # später: Updates veröffentlichen
+```
 
 ## Sicherheit
 
@@ -44,18 +62,19 @@ Kurzfassung für Technikerfahrene: Auf einem Server mit Docker reicht `./scripts
   - Passwörter werden mit bcrypt (Kostenfaktor 12) gespeichert.
   - Rate-Limiting pro IP, Kontosperre für 15 Minuten nach 5 Fehlversuchen.
   - Gleiche Antwortzeit für unbekannte E-Mail-Adressen.
-  - Neue Session-ID nach dem Login.
+  - Neue Sitzung nach dem Login.
 - **Sitzungen**:
-  - Cookies sind `HttpOnly`, `Secure` und `SameSite=Lax`; in Produktion mit `__Host-`-Präfix.
-  - Laufzeit 8 Stunden.
+  - Ein einziges, mit HMAC-SHA256 signiertes Cookie `__session` (Firebase Hosting reicht nur dieses Cookie weiter): `HttpOnly`, `Secure`, `SameSite=Lax`.
+  - Laufzeit 8 Stunden, verlängert sich bei Aktivität.
   - Bei Passwortänderung oder Deaktivierung werden alle Sitzungen beendet.
 - **CSRF-Token** für alle Formulare und AJAX-Aufrufe.
 - **Rechte**: Autor\*innen bearbeiten nur eigene Beiträge. Nutzerverwaltung, Rubriken und Rechtstexte bleiben Admins vorbehalten.
 - **Uploads**:
-  - Nur Bilder, max. 15 MB.
+  - Nur Bilder, max. 15 MB pro Datei; der Browser verkleinert Fotos vorab auf max. 2400 px.
   - Jedes Bild wird neu kodiert (WebP), dabei werden EXIF- und GPS-Daten entfernt.
   - Zufällige Dateinamen, eigene restriktive CSP für `/uploads`.
-- **Inhalte**: Markdown wird serverseitig bereinigt (kein HTML/JS, keine `javascript:`-Links, Bilder nur aus der eigenen Mediathek). SQL läuft ausschließlich über Prepared Statements.
+- **Inhalte**: Markdown wird serverseitig bereinigt (kein HTML/JS, keine `javascript:`-Links, Bilder nur aus der eigenen Mediathek).
+- **Datenbank**: Firestore-Regeln sperren jeden direkten Zugriff aus dem Browser; nur die App selbst liest und schreibt.
 - **SSRF-Schutz** beim Abrufen von Link-Vorschauen und Podcast-Daten:
   - Private und interne IP-Adressen sind blockiert.
   - Jede Weiterleitung wird einzeln geprüft.
@@ -66,8 +85,8 @@ Kurzfassung für Technikerfahrene: Auf einem Server mit Docker reicht `./scripts
 ## Datenschutz & Cookies
 
 - Öffentliche Besucher\*innen erhalten **keine** Cookies außer der eigenen Cookie-Entscheidung, und es gibt kein Tracking.
-- Es werden keine externen Schriftarten oder CDNs geladen. Schrift ist **Aptos**, sofern auf dem Gerät installiert (Windows 11, Microsoft 365); sonst das ähnliche, lokal gehostete **Figtree** (SIL Open Font License, `public/fonts/`).
-- Podcast-Cover und Vorschaubilder werden **lokal gespeichert**, Besucher\*innen kontaktieren also keine Drittanbieter.
+- Es werden keine externen Schriftarten oder CDNs geladen. Schrift ist **Aptos**, sofern auf dem Gerät installiert (Windows 11, Microsoft 365); sonst das ähnliche, lokal gehostete **Figtree** (SIL Open Font License, `web/static/fonts/`).
+- Podcast-Cover und Vorschaubilder werden **im eigenen Speicher abgelegt**, Besucher\*innen kontaktieren also weder Spotify noch Apple.
 - Spotify- und Apple-Player laden nur nach Einwilligung („Zwei-Klick-Lösung“ plus Cookie-Banner). Die Einstellung lässt sich im Footer jederzeit ändern.
 
 > ⚠️ Impressum und Datenschutzerklärung sind **Vorlagen**. Bitte alle Platzhalter in `[eckigen Klammern]` ersetzen (Admin → Einstellungen → Rechtliche Seiten) und im Zweifel rechtlich prüfen lassen.
@@ -76,11 +95,15 @@ Kurzfassung für Technikerfahrene: Auf einem Server mit Docker reicht `./scripts
 
 ```
 src/
-  app.js, server.js, config.js, db.js
-  lib/       Sicherheit, Markdown, Bilder, Podcast-/Link-Abruf, Abfragen
-  routes/    public.js, admin/ (Beiträge, Podcasts, Medien, Nutzer, Einstellungen)
-views/       EJS-Templates (öffentlich + admin/)
-public/      CSS, JS, Favicon
-scripts/     create-admin.js
-test/        Integrationstests
+  index.js       Einstieg für Firebase (Cloud Function)
+  server.js      lokaler Entwicklungsserver
+  app.js, config.js, data.js (Datenzugriff mit Zwischenspeicher)
+  store/         Firestore-, Datei- und Speicher-Treiber, Grundinhalte
+  lib/           Sicherheit, Sitzung, Uploads, Markdown, Bilder, Podcast-/Link-Abruf, Abfragen
+  routes/        public.js, admin/ (Beiträge, Podcasts, Medien, Nutzer, Einstellungen)
+views/           EJS-Templates (öffentlich + admin/)
+web/static/      CSS, Schriften, JS, Favicon (liefert Firebase Hosting direkt aus)
+scripts/         create-admin.js, firebase-setup.sh, firebase-admin.sh, firebase-deploy.sh
+firebase.json, firestore.rules
+test/            Integrationstests
 ```

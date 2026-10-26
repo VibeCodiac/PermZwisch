@@ -13,12 +13,3 @@ export function slugify(text) {
       .replace(/-+$/g, '') || 'beitrag'
   );
 }
-
-/** Liefert einen in `table` eindeutigen Slug. `ignoreId` = eigener Datensatz beim Bearbeiten. */
-export function uniqueSlug(db, table, text, ignoreId = null) {
-  const base = slugify(text);
-  const stmt = db.prepare(`SELECT id FROM ${table} WHERE slug = ? AND id IS NOT ?`);
-  let slug = base;
-  for (let i = 2; stmt.get(slug, ignoreId); i++) slug = `${base}-${i}`;
-  return slug;
-}

@@ -1,11 +1,10 @@
 import { Router } from 'express';
-import { db } from '../../db.js';
+import { snapshot, create, update, remove, now, uniqueSlugIn } from '../../data.js';
 import { renderMarkdown } from '../../lib/markdown.js';
-import { uniqueSlug } from '../../lib/slug.js';
+import { slugify } from '../../lib/slug.js';
 import { storeImage } from '../../lib/images.js';
 import { canEdit, fetchLimiter } from '../../lib/security.js';
 import { fetchPodcastMeta, downloadArtwork, parseSpotifyUrl, parseAppleUrl } from '../../lib/podcast.js';
-import { reviewById } from '../../lib/queries.js';
 import { str, intOrNull, publishFields, multipart, forbidden } from './form.js';
 
 const router = Router();
@@ -15,14 +14,11 @@ async function importArtwork(artworkUrl, user, alt) {
   return storeImage(buffer, { uploaderId: user.id, alt });
 }
 
-router.get('/', (req, res) => {
-  const isAdmin = req.user.role === 'admin';
-  const reviews = db
-    .prepare(`SELECT r.id, r.title, r.podcast_name, r.rating, r.status, r.published_at, r.updated_at,
-                     u.name AS author_name, m.file AS artwork_file
-              FROM reviews r JOIN users u ON u.id = r.author_id LEFT JOIN media m ON m.id = r.artwork_id
-              ${isAdmin ? '' : 'WHERE r.author_id = ?'} ORDER BY r.updated_at DESC`)
-    .all(...(isAdmin ? [] : [req.user.id]));
+router.get('/', async (req, res) => {
+  const s = await snapshot({ fresh: true });
+  const reviews = s.reviews
+    .filter((r) => req.user.role === 'admin' || r.author_id === req.user.id)
+    .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
   res.render('admin/reviews', { title: res.locals.site.podcast_title, reviews });
 });
 
@@ -35,7 +31,8 @@ router.post('/metadaten', fetchLimiter, async (req, res) => {
   if (meta.artworkUrl) {
     try {
       const id = await importArtwork(meta.artworkUrl, req.user, `Cover: ${meta.podcastName || meta.episodeTitle}`);
-      artwork = { id, url: `/uploads/${db.prepare('SELECT file FROM media WHERE id = ?').get(id).file}-sm.webp` };
+      const file = (await snapshot({ fresh: true })).mediaById.get(id).file;
+      artwork = { id, url: `/uploads/${file}-sm.webp` };
     } catch {
       artwork = null;
     }
@@ -49,9 +46,8 @@ router.post('/metadaten', fetchLimiter, async (req, res) => {
   });
 });
 
-function renderForm(res, review, { error = null, status = 200 } = {}) {
-  let artworkFile = review.artwork_file;
-  if (review.artwork_id && !artworkFile) artworkFile = db.prepare('SELECT file FROM media WHERE id = ?').get(review.artwork_id)?.file;
+function renderForm(res, s, review, { error = null, status = 200 } = {}) {
+  const artworkFile = review.artwork_id ? s.mediaById.get(review.artwork_id)?.file : null;
   res.status(status).render('admin/review-form', {
     title: review.id ? 'Review bearbeiten' : 'Neues Podcast-Review',
     review: { ...review, artwork_file: artworkFile },
@@ -59,18 +55,19 @@ function renderForm(res, review, { error = null, status = 200 } = {}) {
   });
 }
 
-router.get('/neu', (req, res) => renderForm(res, { status: 'draft', rating: 0 }));
+router.get('/neu', async (req, res) => renderForm(res, await snapshot({ fresh: true }), { status: 'draft', rating: 0 }));
 
-router.get('/:id', (req, res, next) => {
-  const review = reviewById(intOrNull(req.params.id));
+router.get('/:id', async (req, res, next) => {
+  const s = await snapshot({ fresh: true });
+  const review = s.reviewsById.get(intOrNull(req.params.id));
   if (!review) return next();
   if (!canEdit(req.user, review)) return next(forbidden());
-  renderForm(res, review);
+  renderForm(res, s, review);
 });
 
 const uploads = multipart([{ name: 'artwork', maxCount: 1 }]);
 
-async function save(req, res, existing) {
+async function save(req, res, s, existing) {
   const b = req.body;
   const rating = intOrNull(b.rating);
   const data = {
@@ -95,8 +92,8 @@ async function save(req, res, existing) {
   else if (data.spotify_url && !spotify) error = 'Der Spotify-Link wird nicht erkannt (erwartet: https://open.spotify.com/show/… oder /episode/…).';
   else if (data.apple_url && !apple) error = 'Der Apple-Podcasts-Link wird nicht erkannt (erwartet: https://podcasts.apple.com/de/podcast/…/id123…).';
   else if (!data.podcast_name && !data.episode_title) error = 'Bitte den Namen des Podcasts angeben (oder per „Daten abrufen“ laden).';
-  if (data.artwork_id && !db.prepare('SELECT 1 FROM media WHERE id = ?').get(data.artwork_id)) data.artwork_id = null;
-  if (error) return renderForm(res, formState, { error, status: 400 });
+  if (data.artwork_id && !s.mediaById.has(data.artwork_id)) data.artwork_id = null;
+  if (error) return renderForm(res, s, formState, { error, status: 400 });
 
   if (str(b.remove_artwork) === '1') data.artwork_id = null;
   const file = req.files?.artwork?.[0];
@@ -112,39 +109,38 @@ async function save(req, res, existing) {
     }
   }
 
-  const slug = uniqueSlug(db, 'reviews', formState.slug || data.title, existing?.id ?? null);
-  const values = [
-    data.title, slug, data.podcast_name, data.episode_title, data.publisher, data.artwork_id,
-    spotify?.url ?? null, apple?.url ?? null, data.rating, data.excerpt, data.body_md, renderMarkdown(data.body_md),
-    status, publishedAt,
-  ];
+  const record = {
+    ...data,
+    spotify_url: spotify?.url ?? null,
+    apple_url: apple?.url ?? null,
+    slug: uniqueSlugIn(s.reviews, slugify(formState.slug || data.title), existing?.id ?? null),
+    body_html: renderMarkdown(data.body_md),
+    status,
+    published_at: publishedAt,
+    updated_at: now(),
+  };
   let id = existing?.id;
-  if (id) {
-    db.prepare(`UPDATE reviews SET title=?, slug=?, podcast_name=?, episode_title=?, publisher=?, artwork_id=?,
-                spotify_url=?, apple_url=?, rating=?, excerpt=?, body_md=?, body_html=?, status=?, published_at=?,
-                updated_at=datetime('now') WHERE id=?`).run(...values, id);
-  } else {
-    id = db.prepare(`INSERT INTO reviews (title, slug, podcast_name, episode_title, publisher, artwork_id, spotify_url,
-                     apple_url, rating, excerpt, body_md, body_html, status, published_at, author_id)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(...values, req.user.id).lastInsertRowid;
-  }
+  if (id) await update('reviews', id, record);
+  else id = await create('reviews', { ...record, author_id: req.user.id });
   res.redirect(`/admin/podcasts/${id}?gespeichert=1`);
 }
 
-router.post('/', uploads, (req, res) => save(req, res, null));
+router.post('/', uploads, async (req, res) => save(req, res, await snapshot({ fresh: true }), null));
 
-router.post('/:id', uploads, (req, res, next) => {
-  const existing = db.prepare('SELECT * FROM reviews WHERE id = ?').get(intOrNull(req.params.id));
+router.post('/:id', uploads, async (req, res, next) => {
+  const s = await snapshot({ fresh: true });
+  const existing = s.reviewsById.get(intOrNull(req.params.id));
   if (!existing) return next();
   if (!canEdit(req.user, existing)) return next(forbidden());
-  return save(req, res, existing);
+  return save(req, res, s, existing);
 });
 
-router.post('/:id/loeschen', (req, res, next) => {
-  const review = db.prepare('SELECT id, author_id FROM reviews WHERE id = ?').get(intOrNull(req.params.id));
+router.post('/:id/loeschen', async (req, res, next) => {
+  const s = await snapshot({ fresh: true });
+  const review = s.reviewsById.get(intOrNull(req.params.id));
   if (!review) return next();
   if (!canEdit(req.user, review)) return next(forbidden());
-  db.prepare('DELETE FROM reviews WHERE id = ?').run(review.id);
+  await remove('reviews', review.id);
   res.redirect('/admin/podcasts');
 });
 

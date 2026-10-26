@@ -6,13 +6,13 @@ import path from 'node:path';
 
 process.env.NODE_ENV = 'test';
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'blog-test-'));
-process.env.DB_PATH = ':memory:';
+process.env.DATA_DRIVER = 'memory';
 
 const { default: request } = await import('supertest');
 const { default: sharp } = await import('sharp');
 const { default: bcrypt } = await import('bcryptjs');
 const { createApp } = await import('../src/app.js');
-const { db } = await import('../src/db.js');
+const { create, snapshot, update } = await import('../src/data.js');
 const { parseSpotifyUrl, parseAppleUrl } = await import('../src/lib/podcast.js');
 const { isPrivateAddress } = await import('../src/lib/safe-fetch.js');
 const { renderMarkdown } = await import('../src/lib/markdown.js');
@@ -23,8 +23,9 @@ let png;
 
 before(async () => {
   const hash = bcrypt.hashSync(PASSWORD, 4);
-  db.prepare("INSERT INTO users (email, name, slug, role, password_hash) VALUES ('admin@test.de', 'Ada Admin', 'ada-admin', 'admin', ?)").run(hash);
-  db.prepare("INSERT INTO users (email, name, slug, role, password_hash) VALUES ('autor@test.de', 'Bo Autor', 'bo-autor', 'author', ?)").run(hash);
+  const base = { active: 1, bio: '', password_hash: hash, failed_logins: 0, locked_until: null, session_version: 0 };
+  await create('users', { ...base, email: 'admin@test.de', name: 'Ada Admin', slug: 'ada-admin', role: 'admin' });
+  await create('users', { ...base, email: 'autor@test.de', name: 'Bo Autor', slug: 'bo-autor', role: 'author' });
   png = await sharp({ create: { width: 640, height: 400, channels: 3, background: '#c2522c' } })
     .withMetadata({ exif: { IFD0: { Copyright: 'geheim' } } })
     .jpeg()
@@ -76,7 +77,7 @@ test('falsches Passwort und Kontosperre nach 5 Fehlversuchen', async () => {
   }
   const res = await agent.post('/admin/login').type('form').send({ email: 'autor@test.de', password: PASSWORD, _csrf: token }).expect(401);
   assert.match(res.text, /vorübergehend gesperrt/);
-  db.prepare("UPDATE users SET locked_until = NULL, failed_logins = 0 WHERE email = 'autor@test.de'").run();
+  await update('users', 2, { locked_until: null, failed_logins: 0 });
 });
 
 test('Beitrag mit Bildern anlegen, veröffentlichen und anzeigen', async () => {
@@ -96,13 +97,14 @@ test('Beitrag mit Bildern anlegen, veröffentlichen und anzeigen', async () => {
     .expect(302);
   assert.match(res.headers.location, /^\/admin\/beitraege\/\d+\?gespeichert=1$/);
 
-  const post = db.prepare("SELECT * FROM posts WHERE slug = 'ueber-groesse-mass'").get();
+  const s = await snapshot({ fresh: true });
+  const post = s.posts.find((p) => p.slug === 'ueber-groesse-mass');
   assert.ok(post, 'Slug mit Umlauten');
   assert.doesNotMatch(post.body_html, /<script|javascript:/);
-  assert.equal(db.prepare('SELECT COUNT(*) n FROM post_images WHERE post_id = ?').get(post.id).n, 2);
+  assert.equal(post.images.length, 2);
 
   // Bild ist neu kodiert (WebP, ohne EXIF)
-  const file = db.prepare('SELECT file FROM media WHERE id = ?').get(post.cover_id).file;
+  const file = s.mediaById.get(post.cover_id).file;
   const meta = await sharp(path.join(process.env.DATA_DIR, 'uploads', `${file}.webp`)).metadata();
   assert.equal(meta.format, 'webp');
   assert.equal(meta.exif, undefined);
@@ -129,7 +131,7 @@ test('Link-Beitrag braucht gültige http(s)-URL', async () => {
 
 test('Autor*innen dürfen fremde Beiträge nicht bearbeiten und keine Nutzer verwalten', async () => {
   const { agent, csrf } = await login('autor@test.de');
-  const post = db.prepare("SELECT id FROM posts WHERE slug = 'ueber-groesse-mass'").get();
+  const post = (await snapshot({ fresh: true })).posts.find((p) => p.slug === 'ueber-groesse-mass');
   await agent.get(`/admin/beitraege/${post.id}`).expect(403);
   await agent.post(`/admin/beitraege/${post.id}/loeschen`).type('form').send({ _csrf: csrf }).expect(403);
   await agent.get('/admin/nutzer').expect(403);
@@ -152,7 +154,7 @@ test('Podcast-Review mit eigenem Cover, Sternen und Zwei-Klick-Player', async ()
     .field('status', 'published')
     .attach('artwork', png, 'art.jpg')
     .expect(302);
-  const review = db.prepare("SELECT * FROM reviews WHERE slug = 'hoerenswert'").get();
+  const review = (await snapshot({ fresh: true })).reviews.find((r) => r.slug === 'hoerenswert');
   assert.equal(review.spotify_url, 'https://open.spotify.com/episode/4rOoJ6Egrf8K2IrywzwOMk');
   const page = await request(app).get('/podcasts/hoerenswert').expect(200);
   assert.match(page.text, /★★★★☆/);
@@ -179,4 +181,57 @@ test('Markdown erlaubt keine fremden Bilder oder Event-Handler', () => {
   const html = renderMarkdown('![x](https://tracker.example/p.gif) ![ok](/uploads/abc.webp) <a href="#" onclick="x()">a</a>');
   assert.doesNotMatch(html, /tracker|onclick/);
   assert.match(html, /\/uploads\/abc.webp/);
+});
+
+test('Sitzung steckt in genau einem signierten Cookie „__session“ (Firebase Hosting)', async () => {
+  const agent = request.agent(app);
+  const page = await agent.get('/admin/login');
+  const res = await agent.post('/admin/login').type('form')
+    .send({ email: 'admin@test.de', password: PASSWORD, _csrf: csrfFrom(page.text) }).expect(302);
+  const cookies = res.headers['set-cookie'];
+  assert.equal(cookies.length, 1);
+  assert.match(cookies[0], /^__session=[^;]+\.[^;]+; Path=\/; HttpOnly; SameSite=Lax; Max-Age=28800/);
+
+  // Manipuliertes Cookie wird verworfen
+  const value = cookies[0].split(';')[0].slice('__session='.length);
+  const [body, sig] = value.split('.');
+  const forged = Buffer.from(JSON.stringify({ d: { userId: 1, sv: 0 }, iat: Date.now(), exp: Date.now() + 1e6 })).toString('base64url');
+  await request(app).get('/admin').set('Cookie', `__session=${forged}.${sig}`).expect(302).expect('location', '/admin/login');
+  await request(app).get('/admin').set('Cookie', `__session=${body}.${sig}`).expect(200);
+
+  // Abmelden löscht das Cookie
+  const dash = await agent.get('/admin');
+  const out = await agent.post('/admin/logout').type('form').send({ _csrf: csrfFrom(dash.text) }).expect(302);
+  assert.match(out.headers['set-cookie'][0], /^__session=; .*Max-Age=0/);
+  await agent.get('/admin').expect(302);
+});
+
+test('Passwortänderung beendet andere Sitzungen, die eigene bleibt', async () => {
+  const first = await login('autor@test.de');
+  const second = await login('autor@test.de');
+  const NEW = 'ein-neues-passwort-42';
+  await first.agent.post('/admin/profil/passwort').type('form')
+    .send({ _csrf: first.csrf, current: PASSWORD, password: NEW, password2: NEW }).expect(302);
+  await first.agent.get('/admin').expect(200);
+  await second.agent.get('/admin').expect(302).expect('location', '/admin/login');
+  // zurücksetzen für andere Tests
+  const hash = bcrypt.hashSync(PASSWORD, 4);
+  await update('users', 2, { password_hash: hash });
+});
+
+test('Öffentliche Seiten sind im CDN cachebar, Redaktion nie', async () => {
+  const home = await request(app).get('/').expect(200);
+  assert.match(home.headers['cache-control'], /public.*s-maxage=\d+/);
+  const login = await request(app).get('/admin/login').expect(200);
+  assert.equal(login.headers['cache-control'], 'no-store');
+});
+
+test('Rubrik löschen lässt Beiträge bestehen', async () => {
+  const { agent, csrf } = await login('admin@test.de');
+  await agent.post('/admin/rubriken/2/loeschen').type('form').send({ _csrf: csrf }).expect(302);
+  const s = await snapshot({ fresh: true });
+  assert.equal(s.sectionsById.has(2), false);
+  const post = s.posts.find((p) => p.slug === 'ueber-groesse-mass');
+  assert.equal(post.section_id, null);
+  await request(app).get('/artikel/ueber-groesse-mass').expect(200);
 });

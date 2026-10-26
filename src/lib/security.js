@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import helmet from 'helmet';
-import { rateLimit } from 'express-rate-limit';
-import { db } from '../db.js';
+import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
+import { getUser } from '../data.js';
 import { config } from '../config.js';
 
 // ---- HTTP-Sicherheitsheader ----
@@ -36,18 +36,25 @@ export const securityHeaders = [
 ];
 
 // ---- Rate Limiting ----
-export const generalLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 300,
+// Auf Firebase kommt die Anfrage über Proxys; ohne erkennbare Adresse zählt ein gemeinsamer Topf.
+// Der eigentliche Schutz vor Passwort-Raten ist die Kontosperre (siehe Login).
+const limiterDefaults = {
   standardHeaders: 'draft-8',
   legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip || req.socket?.remoteAddress || '0.0.0.0'),
+  validate: { ip: false, trustProxy: false },
+};
+
+export const generalLimiter = rateLimit({
+  ...limiterDefaults,
+  windowMs: 60 * 1000,
+  limit: 300,
 });
 
 export const loginLimiter = rateLimit({
+  ...limiterDefaults,
   windowMs: 15 * 60 * 1000,
   limit: 10,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
   skipSuccessfulRequests: true,
   handler: (req, res) => {
     res.status(429).render('admin/login', {
@@ -58,7 +65,7 @@ export const loginLimiter = rateLimit({
   },
 });
 
-export const fetchLimiter = rateLimit({ windowMs: 60 * 1000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false });
+export const fetchLimiter = rateLimit({ ...limiterDefaults, windowMs: 60 * 1000, limit: 20 });
 
 // ---- CSRF-Schutz (Synchronizer-Token in der Sitzung) ----
 export function csrfToken(req) {
@@ -90,17 +97,20 @@ export function csrfForMutations(req, res, next) {
 }
 
 // ---- Authentifizierung & Rechte ----
-export function loadUser(req, res, next) {
+export async function loadUser(req, res, next) {
   const id = req.session?.userId;
   if (id) {
-    const user = db
-      .prepare('SELECT id, email, name, slug, role, bio, avatar_id, active FROM users WHERE id = ?')
-      .get(id);
-    if (user && user.active) {
-      req.user = user;
-      res.locals.currentUser = user;
+    const user = await getUser(id);
+    // Sitzungsversion: wird bei Passwortänderung/Deaktivierung erhöht und beendet alte Sitzungen
+    if (user && user.active && (user.session_version || 0) === (req.session.sv || 0)) {
+      req.user = {
+        id: user.id, email: user.email, name: user.name, slug: user.slug,
+        role: user.role, bio: user.bio || '', avatar_id: user.avatar_id ?? null, active: user.active,
+      };
+      res.locals.currentUser = req.user;
     } else {
       delete req.session.userId;
+      delete req.session.sv;
     }
   }
   next();

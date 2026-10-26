@@ -1,0 +1,42 @@
+{
+  "hosting": {
+    "public": "web",
+    "ignore": ["firebase.json", "**/.*"],
+    "trailingSlash": false,
+    "headers": [
+      {
+        "source": "/static/**",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+      },
+      {
+        "source": "**",
+        "headers": [
+          { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+        ]
+      }
+    ],
+    "rewrites": [
+      { "source": "**", "function": { "functionId": "permzwisch", "region": "europe-west3" } }
+    ]
+  },
+  "functions": [
+    {
+      "source": ".",
+      "codebase": "permzwisch",
+      "runtime": "nodejs22",
+      "ignore": ["node_modules", ".git", ".firebase", "data", "test", "web", "firebase-debug.log", "*.local"]
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "functions": { "port": 5001 },
+    "firestore": { "port": 8080 },
+    "hosting": { "port": 5000 },
+    "ui": { "enabled": false }
+  }
+}

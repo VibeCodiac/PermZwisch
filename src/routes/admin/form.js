@@ -1,5 +1,5 @@
 import { toDbDate } from '../../lib/helpers.js';
-import { upload } from '../../lib/images.js';
+import { parseMultipart } from '../../lib/multipart.js';
 import { verifyCsrf } from '../../lib/security.js';
 
 /** String aus dem Formular holen, trimmen und kürzen. */
@@ -35,7 +35,7 @@ export function publishFields(body, existing) {
 
 /** Multipart-Upload parsen und danach CSRF prüfen. */
 export function multipart(fields) {
-  return [upload.fields(fields), verifyCsrf];
+  return [parseMultipart(fields), verifyCsrf];
 }
 
 export function forbidden() {

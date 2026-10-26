@@ -1,95 +1,101 @@
-# Den Blog online stellen
+# Den Blog auf Firebase online stellen
 
-Diese Anleitung bringt „Permanente Zwischenlagerung“ auf einen eigenen Server mit eigener Domain und HTTPS.
-Du brauchst etwa **30 Minuten**. Programmierkenntnisse sind nicht nötig, du kopierst nur ein paar Zeilen.
+Diese Anleitung bringt „Permanente Zwischenlagerung“ auf **Firebase** mit der Domain **permanent-blog.de**.
+Alles geht im Browser, auch auf dem iPad. Du brauchst etwa **30–45 Minuten**, davon ist viel Warten.
 
-**Kosten:** ca. 5–7 € im Monat für den Server (inkl. automatischer Backups) plus ca. 5–15 € im Jahr für die Domain.
-Die Preise ändern sich gelegentlich, bitte beim Anbieter prüfen.
+**Kosten:** Firebase verlangt für diese Art Website den Tarif **„Blaze“** (Abrechnung nach Verbrauch, Kreditkarte nötig).
+Bei einem kleinen Blog fallen meist **unter 1 € im Monat** an, oft gar nichts. Dazu kommt die Domain mit ca. 5–15 € im Jahr.
+Damit nichts überrascht, richtest du in Teil 1 einen **Budget-Alarm** ein.
+
+In einem Firebase-Projekt kannst du später auch **weitere Websites** sammeln: Jede bekommt dort einen eigenen „Hosting-Bereich“.
 
 ---
 
-## 1. Domain kaufen
+## Teil 1: Firebase-Projekt anlegen (ca. 10 Minuten)
 
-Kaufe die Domain **`permanent-blog.de`** bei einem Domain-Anbieter. Vor dem Kauf zeigt dir der Anbieter, ob sie noch frei ist. Die Domain kann auch direkt bei Hetzner gekauft werden (Schritt 2), dann ist alles an einem Ort. Andere übliche Anbieter sind z. B. INWX, Netcup oder Strato.
+1. **console.firebase.google.com** öffnen und mit deinem Google-Konto anmelden.
+2. **„Projekt erstellen“** (bzw. „Neues Firebase-Projekt“) antippen.
+   - **Name:** z. B. `Permanent Blog`.
+   - Unter dem Namen zeigt Firebase die **Projekt-ID** an, z. B. `permanent-blog-1a2b3`. **Notiere sie dir genau**, du brauchst sie in Teil 2.
+   - **Google Analytics:** ausschalten. Der Blog braucht es nicht, und ohne ist es datenschutzfreundlicher.
+   - **KI-Hilfe (Gemini):** kannst du ausschalten.
+3. Warten, bis das Projekt fertig ist, dann **„Weiter“**.
+4. **Blaze-Tarif aktivieren:** Unten links auf **„Spark“** bzw. das Zahnrad → *Nutzung und Abrechnung* → **„Tarif ändern“** → **Blaze** wählen. Ein Rechnungskonto mit Kreditkarte anlegen.
+5. **Budget-Alarm** setzen, wenn Firebase danach fragt, z. B. **5 €**. Du bekommst dann eine E-Mail, falls die Kosten je darüber steigen.
 
-Wichtig ist nur, dass du dort später **DNS-Einträge** bearbeiten kannst. Das können alle diese Anbieter.
+> **Wichtig:** Sonst nichts in der Firebase Console anklicken, insbesondere *nicht* „Firestore“ oder „Storage“ selbst anlegen. Das erledigt das Skript in Teil 2, und zwar in Frankfurt.
 
-## 2. Server bei Hetzner anlegen
+## Teil 2: Blog einrichten und hochladen (ca. 15 Minuten, meist Warten)
 
-1. Konto erstellen auf **hetzner.com/cloud** und in der **Cloud Console** ein neues Projekt anlegen, z. B. „Blog“.
-2. **Server hinzufügen** und Folgendes auswählen:
-   - **Standort:** Nürnberg oder Falkenstein (Deutschland)
-   - **Image:** Ubuntu 24.04
-   - **Typ:** der kleinste Server mit „Shared vCPU“ (x86) genügt
-   - **Netzwerk:** öffentliche IPv4 und IPv6 aktiviert lassen
-   - **SSH-Key:** optional. Ohne Key schickt Hetzner dir ein Root-Passwort per E-Mail.
-   - **Backups:** aktivieren. Dann gibt es tägliche Sicherungen des ganzen Servers.
-   - **Cloud config:** Inhalt der Datei [`deploy/cloud-config.yaml`](deploy/cloud-config.yaml) einfügen. Die Domain `permanent-blog.de` ist dort schon eingetragen. Falls du eine andere Domain kaufst, ändere nur diese eine Zeile (ohne `www` und ohne `https://`).
-   - **Name:** z. B. `blog`
-3. **Erstellen & kaufen.** Nach etwa einer Minute siehst du die **IPv4-Adresse** (z. B. `203.0.113.10`) und die **IPv6-Adresse** des Servers. Notiere dir beide.
-
-Der Server installiert sich jetzt selbst: Updates, Firewall, Docker und der Blog. Das dauert etwa 5–10 Minuten.
-
-## 3. Domain auf den Server zeigen lassen (DNS)
-
-Lege beim Domain-Anbieter diese vier Einträge an. Vorhandene A- und AAAA-Einträge für `@` und `www` vorher löschen.
-
-| Typ  | Name  | Wert                     |
-|------|-------|--------------------------|
-| A    | `@`   | IPv4-Adresse des Servers |
-| A    | `www` | IPv4-Adresse des Servers |
-| AAAA | `@`   | IPv6-Adresse des Servers |
-| AAAA | `www` | IPv6-Adresse des Servers |
-
-Bei manchen Anbietern heißt `@` „leer“ oder ist schon die Domain selbst. Bei Hetzner-IPv6 nimm die Adresse mit `1` am Ende, z. B. `2a01:4f8:…::1`.
-
-Nach einigen Minuten (selten bis zu ein paar Stunden) ist die Domain erreichbar. Das **HTTPS-Zertifikat** holt der Server automatisch, sobald die Domain auf ihn zeigt.
-
-## 4. Admin-Konto anlegen
-
-1. In der Hetzner Cloud Console auf den Server klicken, dann oben rechts auf **„>_ Konsole“**. Alternativ per SSH: `ssh root@DEINE-IP`.
-2. Als `root` mit dem Passwort aus der E-Mail anmelden. Beim ersten Login fordert der Server ein neues Passwort.
-3. Diese Zeile eingeben und Enter drücken:
+1. In einem neuen Tab **shell.cloud.google.com** öffnen, mit demselben Google-Konto. Das ist ein Terminal im Browser von Google, die „Cloud Shell“. Beim ersten Mal ggf. den Bedingungen zustimmen und auf **„Autorisieren“** tippen, wenn gefragt.
+2. Diese Zeilen nacheinander eintippen bzw. einfügen und jeweils Enter drücken. **`PROJEKT-ID`** durch deine Projekt-ID aus Teil 1 ersetzen:
 
    ```bash
-   cd /opt/permzwisch && docker compose exec app node scripts/create-admin.js
+   git clone https://github.com/VibeCodiac/PermZwisch.git
+   cd PermZwisch
+   ./scripts/firebase-setup.sh PROJEKT-ID
    ```
 
-4. E-Mail, Name und Passwort eingeben. Das Passwort ist beim Tippen unsichtbar.
+3. Das Skript arbeitet jetzt alles ab und zeigt jeden Schritt an. Wahrscheinlich fragt es einmal nach einer **Anmeldung bei Firebase**:
+   - Es erscheint ein **Link**: antippen, mit deinem Google-Konto anmelden und zustimmen.
+   - Du bekommst einen **Code**: kopieren, zurück in die Cloud Shell, einfügen, Enter.
+   - Falls gefragt wird, ob Firebase anonyme Nutzungsdaten sammeln darf: `n` und Enter.
+4. Am Ende steht **„✔ Fertig!“** und eine Adresse wie `https://permanent-blog-1a2b3.web.app`. Der Blog ist jetzt online, noch ohne eigene Domain.
 
-Falls die Meldung kommt, dass der Dienst nicht läuft, ist die Installation noch nicht fertig. Ein paar Minuten warten und erneut versuchen.
+Bricht das Skript mit einer Fehlermeldung ab: einen Screenshot machen und mir schicken. Das Skript darf gefahrlos noch einmal gestartet werden.
 
-## 5. Loslegen
+## Teil 3: Admin-Konto anlegen (2 Minuten)
 
-1. **`https://permanent-blog.de/admin`** öffnen und anmelden.
-2. Unter **Einstellungen → Rechtliche Seiten** das **Impressum** und die **Datenschutzerklärung** ausfüllen (Platzhalter in `[eckigen Klammern]` ersetzen). Beim Hosting-Anbieter in der Datenschutzerklärung eintragen: *Hetzner Online GmbH, Industriestr. 25, 91710 Gunzenhausen*. Bitte vorher prüfen, ob die Adresse noch aktuell ist.
-3. Weitere Autor\*innen unter **Nutzer\*innen** anlegen.
-4. In der Hetzner Console unter **Konto → Datenschutz** den **Auftragsverarbeitungsvertrag (AVV)** abschließen. Das sind ein paar Klicks und wird für die DSGVO benötigt.
+Noch in der Cloud Shell:
 
-Fertig! 🎉
+```bash
+./scripts/firebase-admin.sh
+```
+
+- Eventuell kommt wieder ein Link mit Code, genauso wie oben.
+- Dann **E-Mail, Name und Passwort** eingeben. Das Passwort ist beim Tippen unsichtbar, das ist so gewollt.
+
+Danach `https://PROJEKT-ID.web.app/admin` öffnen und anmelden. 🎉
+
+## Teil 4: Eigene Domain permanent-blog.de verbinden (10 Minuten + Wartezeit)
+
+1. **Domain kaufen**, z. B. bei **inwx.de**. Vorher prüfen, ob `permanent-blog.de` noch frei ist.
+2. In der **Firebase Console** links auf **„Hosting“** (ggf. unter „Build“ oder „Alle Produkte“) → **„Benutzerdefinierte Domain hinzufügen“** → `permanent-blog.de` eingeben.
+3. Firebase zeigt dir **DNS-Einträge** an, meist einen **TXT**-Eintrag zur Bestätigung und **A**-Einträge. Diese genau so beim Domain-Anbieter (z. B. INWX → Domain → *DNS* bzw. *Nameserver-Einträge*) anlegen. Vorhandene A-Einträge für die Hauptdomain vorher löschen.
+4. Zurück in Firebase auf **„Bestätigen“** tippen. Bis alles grün ist und das HTTPS-Zertifikat steht, kann es **einige Minuten bis 24 Stunden** dauern.
+5. Dasselbe noch einmal für **`www.permanent-blog.de`**. Dabei die Option **„Weiterleiten zu permanent-blog.de“** wählen.
+
+Die Einrichtung in Teil 2 ist schon auf `permanent-blog.de` eingestellt, z. B. für Links im RSS-Feed und in der Sitemap.
+
+## Teil 5: Rechtliches
+
+1. Unter **`/admin` → Einstellungen → Rechtliche Seiten** das **Impressum** und die **Datenschutzerklärung** ausfüllen (Platzhalter in `[eckigen Klammern]` ersetzen). Hosting-Anbieter ist jetzt *Google Cloud EMEA Limited* (Firebase), das steht in der Vorlage schon drin.
+2. **Vertrag zur Auftragsverarbeitung mit Google:** In der Firebase Console → Zahnrad → **Projekteinstellungen** → Bereich **„Datenschutz“** bzw. „Datenverarbeitungsbedingungen“ die Bedingungen bestätigen. Die Bezeichnung des Menüpunkts kann sich bei Google ändern; schick mir im Zweifel einen Screenshot.
 
 ---
 
 ## Später
 
-**Neue Version einspielen.** Nachdem neuer Code auf GitHub ist, in der Server-Konsole eingeben:
+**Neue Version veröffentlichen.** Wenn neuer Code auf GitHub ist, in der Cloud Shell:
 
 ```bash
-cd /opt/permzwisch && ./scripts/update.sh
+cd PermZwisch && ./scripts/firebase-deploy.sh
 ```
 
-Beiträge, Bilder und Konten bleiben dabei erhalten.
+Beiträge, Fotos und Konten bleiben dabei erhalten.
 
-**Backups.** Hetzner sichert den ganzen Server täglich und hebt 7 Sicherungen auf. Wiederherstellen geht in der Cloud Console unter *Server → Backups*.
+**Passwort vergessen.** In der Cloud Shell `cd PermZwisch && ./scripts/firebase-admin.sh` ausführen, mit derselben E-Mail-Adresse. Dann wird das Passwort neu gesetzt.
 
-**Passwort vergessen.** Den Befehl aus Schritt 4 erneut ausführen, mit derselben E-Mail-Adresse. Dann wird das Passwort neu gesetzt.
+**Etwas langsam beim ersten Aufruf?** Wenn eine Weile niemand die Seite besucht hat, braucht der erste Aufruf 2–5 Sekunden („Kaltstart“). Danach ist sie schnell. Das hält die Kosten bei nahezu null.
 
-**Was läuft auf dem Server?**
+**Neuer Beitrag erscheint nicht sofort?** Öffentliche Seiten werden bis zu 2 Minuten zwischengespeichert. Im Redaktionsbereich siehst du Änderungen immer sofort.
 
-- **Blog-App** (Node.js) in einem Docker-Container. Die Daten (Datenbank und Bilder) liegen in einem eigenen Docker-Volume.
-- **Caddy** als Webserver davor. Er kümmert sich um HTTPS-Zertifikate (Let's Encrypt), leitet `http://` und `www.` auf `https://permanent-blog.de` um und speichert keine Zugriffsprotokolle.
-- **Firewall (ufw)**: Offen sind nur SSH sowie Port 80 und 443.
-- **fail2ban** blockiert wiederholte SSH-Anmeldeversuche.
-- **Automatische Sicherheitsupdates** für das Betriebssystem.
+## Was wo liegt
 
-Die Einstellungen (Domain, geheimer Sitzungsschlüssel) stehen in `/opt/permzwisch/.env`. Diese Datei wird beim ersten Start automatisch erzeugt und gehört **nicht** ins Git-Repository.
+| Was | Wo |
+|---|---|
+| Die App | Cloud Function `permzwisch` in Frankfurt (`europe-west3`) |
+| CSS, Schriften, Skripte | Firebase Hosting (weltweites CDN) |
+| Beiträge, Reviews, Konten, Einstellungen | Firestore-Datenbank in Frankfurt; direkter Zugriff von außen ist gesperrt |
+| Fotos und Cover | Cloud Storage `PROJEKT-ID-blog-bilder` in Frankfurt, nicht öffentlich; ausgeliefert über die App |
+| Sitzungsschlüssel | Secret Manager (`SESSION_SECRET`) |

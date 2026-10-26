@@ -1,12 +1,13 @@
 // Legt eine*n Administrator*in an oder setzt das Passwort eines bestehenden Kontos neu.
-// Aufruf: npm run create-admin -- --email you@example.de --name "Dein Name"
+// Lokal:     npm run create-admin -- --email you@example.de --name "Dein Name"
+// Firebase:  ./scripts/firebase-admin.sh   (setzt DATA_DRIVER=firestore und das Projekt)
 import readline from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { parseArgs } from 'node:util';
 import bcrypt from 'bcryptjs';
-import { db } from '../src/db.js';
-import { uniqueSlug } from '../src/lib/slug.js';
-import { passwordProblem } from '../src/routes/admin/users.js';
+import { snapshot, create, update, uniqueSlugIn } from '../src/data.js';
+import { slugify } from '../src/lib/slug.js';
+import { passwordProblem } from '../src/lib/passwords.js';
 
 const { values } = parseArgs({ options: { email: { type: 'string' }, name: { type: 'string' } } });
 const rl = readline.createInterface({ input: stdin, output: stdout });
@@ -62,13 +63,19 @@ if (!email || !name || problem) {
 }
 
 const hash = await bcrypt.hash(password, 12);
-const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+const s = await snapshot({ fresh: true });
+const existing = s.users.find((u) => u.email === email);
 if (existing) {
-  db.prepare("UPDATE users SET password_hash = ?, role = 'admin', active = 1, failed_logins = 0, locked_until = NULL WHERE id = ?")
-    .run(hash, existing.id);
+  await update('users', existing.id, {
+    password_hash: hash, role: 'admin', active: 1, failed_logins: 0, locked_until: null,
+    session_version: (existing.session_version || 0) + 1,
+  });
   console.log(`Konto ${email} aktualisiert (Admin, neues Passwort).`);
 } else {
-  db.prepare("INSERT INTO users (email, name, slug, role, password_hash) VALUES (?, ?, ?, 'admin', ?)")
-    .run(email, name, uniqueSlug(db, 'users', name), hash);
+  await create('users', {
+    email, name, slug: uniqueSlugIn(s.users, slugify(name)), role: 'admin', active: 1, bio: '', avatar_id: null,
+    password_hash: hash, failed_logins: 0, locked_until: null, session_version: 0,
+  });
   console.log(`Admin-Konto ${email} angelegt.`);
 }
+process.exit(0);

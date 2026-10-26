@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { db } from '../db.js';
+import { snapshot } from '../data.js';
 import { config } from '../config.js';
 import {
-  sections, latestPosts, countPosts, postBySlug, postImages,
-  latestReviews, countReviews, reviewBySlug, search,
+  latestPosts, countPosts, postBySlug, postImages,
+  latestReviews, countReviews, reviewBySlug, search, isPublished,
 } from '../lib/queries.js';
 import { parseSpotifyUrl, parseAppleUrl } from '../lib/podcast.js';
 import { parseDbDate } from '../lib/helpers.js';
@@ -17,84 +17,92 @@ function pageNumber(req) {
 }
 
 // ---- Magazin ----
-router.get('/', (req, res) => {
-  const latest = latestPosts({ limit: 7 });
-  const bySection = sections()
-    .map((s) => ({ section: s, posts: latestPosts({ sectionId: s.id, limit: 3 }) }))
+router.get('/', async (req, res) => {
+  const s = await snapshot();
+  const latest = latestPosts(s, { limit: 7 });
+  const bySection = s.sections
+    .map((sec) => ({ section: sec, posts: latestPosts(s, { sectionId: sec.id, limit: 3 }) }))
     .filter((g) => g.posts.length);
-  const reviews = latestReviews({ limit: 4 });
+  const reviews = latestReviews(s, { limit: 4 });
   res.render('home', { title: null, lead: latest[0], latest: latest.slice(1), bySection, reviews });
 });
 
-router.get('/rubrik/:slug', (req, res, next) => {
-  const section = db.prepare('SELECT * FROM sections WHERE slug = ?').get(req.params.slug);
+router.get('/rubrik/:slug', async (req, res, next) => {
+  const s = await snapshot();
+  const section = s.sections.find((x) => x.slug === req.params.slug);
   if (!section) return next();
   const page = pageNumber(req);
-  const total = countPosts({ sectionId: section.id });
-  const posts = latestPosts({ sectionId: section.id, limit: PER_PAGE, offset: (page - 1) * PER_PAGE });
+  const total = countPosts(s, { sectionId: section.id });
+  const posts = latestPosts(s, { sectionId: section.id, limit: PER_PAGE, offset: (page - 1) * PER_PAGE });
   res.render('section', { title: section.name, section, posts, page, pages: Math.ceil(total / PER_PAGE) });
 });
 
-router.get('/artikel/:slug', (req, res, next) => {
-  const post = postBySlug(req.params.slug);
+router.get('/artikel/:slug', async (req, res, next) => {
+  const s = await snapshot();
+  const post = postBySlug(s, req.params.slug);
   if (!post) return next();
-  const images = post.kind === 'gallery' ? postImages(post.id) : [];
+  const images = post.kind === 'gallery' ? postImages(s, post) : [];
   const related = post.section_id
-    ? latestPosts({ sectionId: post.section_id, limit: 4 }).filter((p) => p.id !== post.id).slice(0, 3)
+    ? latestPosts(s, { sectionId: post.section_id, limit: 4 }).filter((p) => p.id !== post.id).slice(0, 3)
     : [];
   res.render('post', { title: post.title, description: post.excerpt, post, images, related, ogImage: post.cover_file });
 });
 
 // ---- Podcast-Reviews ----
-router.get('/podcasts', (req, res) => {
+router.get('/podcasts', async (req, res) => {
+  const s = await snapshot();
   const page = pageNumber(req);
-  const total = countReviews();
-  const reviews = latestReviews({ limit: PER_PAGE, offset: (page - 1) * PER_PAGE });
+  const total = countReviews(s);
+  const reviews = latestReviews(s, { limit: PER_PAGE, offset: (page - 1) * PER_PAGE });
   res.render('podcasts', { title: res.locals.site.podcast_title, reviews, page, pages: Math.ceil(total / PER_PAGE) });
 });
 
-router.get('/podcasts/:slug', (req, res, next) => {
-  const review = reviewBySlug(req.params.slug);
+router.get('/podcasts/:slug', async (req, res, next) => {
+  const s = await snapshot();
+  const review = reviewBySlug(s, req.params.slug);
   if (!review) return next();
   const spotify = review.spotify_url ? parseSpotifyUrl(review.spotify_url) : null;
   const apple = review.apple_url ? parseAppleUrl(review.apple_url) : null;
-  const more = latestReviews({ limit: 4 }).filter((r) => r.id !== review.id).slice(0, 3);
+  const more = latestReviews(s, { limit: 4 }).filter((r) => r.id !== review.id).slice(0, 3);
   res.render('review', {
     title: review.title, description: review.excerpt, review, spotify, apple, more, ogImage: review.artwork_file,
   });
 });
 
 // ---- Autor*innen ----
-router.get('/autor/:slug', (req, res, next) => {
-  const author = db
-    .prepare('SELECT u.id, u.name, u.slug, u.bio, m.file AS avatar FROM users u LEFT JOIN media m ON m.id = u.avatar_id WHERE u.slug = ?')
-    .get(req.params.slug);
-  if (!author) return next();
-  const posts = latestPosts({ authorId: author.id, limit: 50 });
-  const reviews = latestReviews({ authorId: author.id, limit: 50 });
-  if (!posts.length && !reviews.length && !db.prepare('SELECT active FROM users WHERE id = ?').get(author.id).active) return next();
+router.get('/autor/:slug', async (req, res, next) => {
+  const s = await snapshot();
+  const user = s.users.find((u) => u.slug === req.params.slug);
+  if (!user) return next();
+  const author = { id: user.id, name: user.name, slug: user.slug, bio: user.bio || '', avatar: user.avatar_file };
+  const posts = latestPosts(s, { authorId: author.id, limit: 50 });
+  const reviews = latestReviews(s, { authorId: author.id, limit: 50 });
+  if (!posts.length && !reviews.length && !user.active) return next();
   res.render('author', { title: author.name, author, posts, reviews });
 });
 
-router.get('/autoren', (req, res) => {
-  const authors = db
-    .prepare(`SELECT u.name, u.slug, u.bio, m.file AS avatar FROM users u LEFT JOIN media m ON m.id = u.avatar_id
-              WHERE u.active = 1 ORDER BY u.name`)
-    .all();
+router.get('/autoren', async (req, res) => {
+  const s = await snapshot();
+  const authors = s.users
+    .filter((u) => u.active)
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'))
+    .map((u) => ({ name: u.name, slug: u.slug, bio: u.bio || '', avatar: u.avatar_file }));
   res.render('authors', { title: 'Autorinnen & Autoren', authors });
 });
 
 // ---- Suche ----
-router.get('/suche', (req, res) => {
+router.get('/suche', async (req, res) => {
+  const s = await snapshot();
   const q = String(req.query.q || '').trim().slice(0, 100);
-  const results = q.length >= 2 ? search(q) : { posts: [], reviews: [] };
+  const results = q.length >= 2 ? search(s, q) : { posts: [], reviews: [] };
   res.render('search', { title: 'Suche', q, results });
 });
 
 // ---- Statische Seiten ----
 for (const slug of ['impressum', 'datenschutz', 'ueber']) {
-  router.get(`/${slug}`, (req, res) => {
-    const page = db.prepare('SELECT * FROM pages WHERE slug = ?').get(slug);
+  router.get(`/${slug}`, async (req, res) => {
+  const s = await snapshot();
+    const page = s.pages.get(slug);
     res.render('page', { title: page.title, page });
   });
 }
@@ -128,39 +136,42 @@ ${items
 </rss>`);
 }
 
-router.get('/feed.xml', (req, res) => {
+router.get('/feed.xml', async (req, res) => {
+  const s = await snapshot();
   const site = res.locals.site;
   rss(res, {
     title: site.site_title,
     link: config.baseUrl,
     description: site.site_tagline,
-    items: latestPosts({ limit: 30 }).map((p) => ({
+    items: latestPosts(s, { limit: 30 }).map((p) => ({
       title: p.title, url: `${config.baseUrl}/artikel/${p.slug}`, date: p.published_at, author: p.author_name, description: p.excerpt,
     })),
   });
 });
 
-router.get('/podcasts/feed.xml', (req, res) => {
+router.get('/podcasts/feed.xml', async (req, res) => {
+  const s = await snapshot();
   const site = res.locals.site;
   rss(res, {
     title: `${site.site_title} – ${site.podcast_title}`,
     link: `${config.baseUrl}/podcasts`,
     description: 'Besprechungen von Podcasts',
-    items: latestReviews({ limit: 30 }).map((r) => ({
+    items: latestReviews(s, { limit: 30 }).map((r) => ({
       title: r.title, url: `${config.baseUrl}/podcasts/${r.slug}`, date: r.published_at, author: r.author_name, description: r.excerpt,
     })),
   });
 });
 
-router.get('/sitemap.xml', (req, res) => {
+router.get('/sitemap.xml', async (req, res) => {
+  const s = await snapshot();
   const urls = ['/', '/podcasts', '/autoren', '/ueber', '/impressum', '/datenschutz']
-    .concat(sections().map((s) => `/rubrik/${s.slug}`))
+    .concat(s.sections.map((sec) => `/rubrik/${sec.slug}`))
     .map((u) => ({ loc: config.baseUrl + u }));
-  for (const p of db.prepare("SELECT slug, updated_at FROM posts WHERE status = 'published' AND published_at <= datetime('now')").all()) {
-    urls.push({ loc: `${config.baseUrl}/artikel/${p.slug}`, lastmod: p.updated_at });
+  for (const p of s.posts.filter(isPublished)) {
+    urls.push({ loc: `${config.baseUrl}/artikel/${p.slug}`, lastmod: p.updated_at || p.published_at });
   }
-  for (const r of db.prepare("SELECT slug, updated_at FROM reviews WHERE status = 'published' AND published_at <= datetime('now')").all()) {
-    urls.push({ loc: `${config.baseUrl}/podcasts/${r.slug}`, lastmod: r.updated_at });
+  for (const r of s.reviews.filter(isPublished)) {
+    urls.push({ loc: `${config.baseUrl}/podcasts/${r.slug}`, lastmod: r.updated_at || r.published_at });
   }
   res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

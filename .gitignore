@@ -1,4 +1,9 @@
 node_modules/
 data/
 .env
+.env.*
+!.env.example
+.secret.local
+.firebase/
+.firebaserc
 *.log
